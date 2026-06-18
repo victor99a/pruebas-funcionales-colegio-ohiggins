@@ -1,3 +1,4 @@
+import time
 import pytest
 from playwright.sync_api import Page
 
@@ -7,6 +8,17 @@ CREDENCIALES = {
     "APODERADO": {"rut": "20000002-3", "password": "Test1234!"},
     "ESTUDIANTE": {"rut": "20000003-1", "password": "Test1234!"},
 }
+
+_ts = int(time.time()) % 100000
+
+
+def rut_unico(rol="test"):
+    base = {"ADMIN": 10, "DOCENTE": 20, "APODERADO": 30, "ESTUDIANTE": 40}.get(rol, 99)
+    return f"{base}{_ts:05d}-k"
+
+
+def email_unico(rol="test"):
+    return f"{rol.lower()}.{_ts}@test-funcional.cl"
 
 
 def injectar_token(page, rut, password, api_base="http://localhost:8080"):

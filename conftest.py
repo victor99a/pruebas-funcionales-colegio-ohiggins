@@ -3,6 +3,23 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    if report.when == "call" and report.failed:
+        page = getattr(item, "_page", None)
+        if not page:
+            page = item.funcargs.get("page") if hasattr(item, "funcargs") else None
+        if page:
+            try:
+                os.makedirs("screenshots", exist_ok=True)
+                name = item.nodeid.replace("::", "_").replace("/", "_")[:200]
+                page.screenshot(path=f"screenshots/FAILED_{name}.png")
+            except Exception:
+                pass
+
+
 @pytest.fixture(scope="session")
 def base_url():
     return os.environ.get("BASE_URL", "http://localhost:8080")
