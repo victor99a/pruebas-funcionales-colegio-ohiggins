@@ -1,0 +1,88 @@
+name: Functional Tests — API Gateway RBAC
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  functional-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: colegio_db
+          POSTGRES_USER: colegio
+          POSTGRES_PASSWORD: colegio123
+        options: >-
+          --health-cmd "pg_isready -U colegio -d colegio_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout platform repo
+        uses: actions/checkout@v4
+        with:
+          repository: yaquelin2305/colegio-bernardo-ohiggins-platform
+          path: platform
+
+      - name: Checkout test repo
+        uses: actions/checkout@v4
+        with:
+          path: tests
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        working-directory: tests
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Build and start test stack
+        working-directory: platform
+        run: |
+          docker compose -f docker-compose.test.yml up --build -d
+          # Wait for gateway to be healthy
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:8080/actuator/health | grep -q UP; then
+              echo "Gateway ready"
+              break
+            fi
+            echo "Waiting for gateway... ($i/30)"
+            sleep 5
+          done
+
+      - name: Run functional tests
+        working-directory: tests
+        env:
+          BASE_URL: http://localhost:8080
+        run: pytest -v --html=report.html --self-contained-html
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: tests/report.html
+
+      - name: Docker logs on failure
+        if: failure()
+        working-directory: platform
+        run: docker compose -f docker-compose.test.yml logs
