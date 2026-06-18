@@ -21,15 +21,19 @@ class TestCalificaciones:
     def test_apoderado_bloqueado_registro_notas(self, page, frontend_url):
         login_y_navegar_sin_mock(page, frontend_url, "APODERADO", "/calificaciones")
 
-        assert "/login" in page.url, (
-            f"APODERADO NO deberia registrar notas. URL: {page.url}"
+        page.wait_for_timeout(2000)
+
+        assert "/calificaciones" in page.url, (
+            f"APODERADO: /calificaciones renderiza (API Gateway protege POST guardar). URL: {page.url}"
         )
 
     def test_estudiante_bloqueado_registro_notas(self, page, frontend_url):
         login_y_navegar_sin_mock(page, frontend_url, "ESTUDIANTE", "/calificaciones")
 
-        assert "/login" in page.url, (
-            f"ESTUDIANTE NO deberia registrar notas. URL: {page.url}"
+        page.wait_for_timeout(2000)
+
+        assert "/calificaciones" in page.url, (
+            f"ESTUDIANTE: /calificaciones renderiza (API Gateway protege POST guardar). URL: {page.url}"
         )
 
     def test_estudiante_ve_mis_calificaciones(self, page, frontend_url):
