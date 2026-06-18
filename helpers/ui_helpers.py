@@ -1,5 +1,4 @@
 import time
-import pytest
 from playwright.sync_api import Page
 
 CREDENCIALES = {
@@ -7,6 +6,27 @@ CREDENCIALES = {
     "DOCENTE":   {"rut": "20000001-5", "password": "Test1234!"},
     "APODERADO": {"rut": "20000002-3", "password": "Test1234!"},
     "ESTUDIANTE": {"rut": "20000003-1", "password": "Test1234!"},
+}
+
+SIDEBAR_VISIBLE = {
+    "ADMIN":     ["Dashboard", "Usuarios", "Comunicaciones", "Historial"],
+    "DOCENTE":   ["Comunicaciones", "Calificaciones"],
+    "APODERADO": ["Mis Calificaciones", "Historial", "Justificar", "Comunicaciones"],
+    "ESTUDIANTE": ["Mis Calificaciones", "Historial", "Comunicaciones"],
+}
+
+SIDEBAR_OCULTO = {
+    "ADMIN":     [],
+    "DOCENTE":   ["Usuarios", "Asig. Docentes"],
+    "APODERADO": ["Dashboard", "Usuarios", "Asig. Docentes"],
+    "ESTUDIANTE": ["Dashboard", "Usuarios", "Asig. Docentes", "Justificar"],
+}
+
+PAGINA_INICIAL = {
+    "ADMIN":     "/dashboard",
+    "DOCENTE":   "/calificaciones",
+    "APODERADO": "/mis-calificaciones",
+    "ESTUDIANTE": "/mis-calificaciones",
 }
 
 _ts = int(time.time()) % 100000
