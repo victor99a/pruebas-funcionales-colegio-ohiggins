@@ -12,13 +12,13 @@ class LoginPage(BasePage):
         self.page.goto(f"{base_url}/login")
 
     def fill_rut(self, rut):
-        self.page.locator('input[placeholder*="RUT"]').fill(rut)
+        self.page.locator('#rut').fill(rut)
 
     def fill_password(self, password):
-        self.page.locator('input[type="password"]').fill(password)
+        self.page.locator('#password').fill(password)
 
     def click_login(self):
-        self.page.locator('button[type="submit"]').click()
+        self.page.locator('button.register-form__btn').click()
 
     def login(self, rut, password):
         self.fill_rut(rut)
@@ -26,7 +26,7 @@ class LoginPage(BasePage):
         self.click_login()
 
     def get_error_message(self):
-        error = self.page.locator('[role="alert"], .error, .text-red-500, .MuiAlert-root')
+        error = self.page.locator('.register-form__error')
         if error.is_visible():
             return error.text_content()
         return None
