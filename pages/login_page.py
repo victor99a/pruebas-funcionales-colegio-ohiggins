@@ -36,3 +36,34 @@ class LoginPage(BasePage):
 
     def is_on_login_page(self):
         return "/login" in self.page.url
+
+
+class DashboardPage(BasePage):
+
+    def __init__(self, page):
+        super().__init__(page)
+
+    def get_sidebar_link_texts(self):
+        self.page.wait_for_timeout(2000)
+        links = self.page.locator('.sidebar__link')
+        count = links.count()
+        texts = []
+        for i in range(count):
+            text = links.nth(i).text_content() or ""
+            texts.append(text.strip())
+        return texts
+
+    def sidebar_has_link(self, label):
+        self.page.wait_for_timeout(1000)
+        links = self.page.locator(f'.sidebar a:has-text("{label}")')
+        return links.count() > 0 and links.first.is_visible()
+
+    def sidebar_lacks_link(self, label):
+        links = self.page.locator(f'.sidebar a:has-text("{label}")')
+        return links.count() == 0
+
+    def navigate_to(self, path, base_url):
+        self.page.goto(f"{base_url}{path}")
+
+    def is_on_page(self, path_segment):
+        return path_segment in self.page.url
