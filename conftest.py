@@ -2,13 +2,15 @@ import os
 import pytest
 from playwright.sync_api import sync_playwright
 
-from helpers.token_manager import TokenManager
-from helpers.user_setup import TestUserSetup
-
 
 @pytest.fixture(scope="session")
 def base_url():
     return os.environ.get("BASE_URL", "http://localhost:8080")
+
+
+@pytest.fixture(scope="session")
+def frontend_url():
+    return os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 
 @pytest.fixture(scope="session")
@@ -20,19 +22,58 @@ def api_context(base_url):
 
 
 @pytest.fixture(scope="session")
+def playwright_instance():
+    with sync_playwright() as pw:
+        yield pw
+
+
+@pytest.fixture(scope="session")
+def browser(playwright_instance):
+    headless = os.environ.get("HEADED", "0") != "1"
+    browser = playwright_instance.chromium.launch(
+        headless=headless,
+        slow_mo=int(os.environ.get("SLOW_MO", "0")),
+    )
+    yield browser
+    browser.close()
+
+
+@pytest.fixture
+def browser_context(browser):
+    video_dir = os.environ.get("VIDEO_DIR")
+    context_kwargs = {}
+    if video_dir:
+        context_kwargs["record_video_dir"] = video_dir
+        context_kwargs["record_video_size"] = {"width": 1280, "height": 720}
+    context = browser.new_context(**context_kwargs)
+    yield context
+    context.close()
+
+
+@pytest.fixture
+def page(browser_context):
+    page = browser_context.new_page()
+    yield page
+    page.close()
+
+
+@pytest.fixture(scope="session")
 def admin_token(api_context, base_url):
+    from helpers.token_manager import TokenManager
     token_mgr = TokenManager(api_context, base_url)
     return token_mgr.get_admin_token()
 
 
 @pytest.fixture(scope="session")
 def setup_roles(api_context, base_url, admin_token):
+    from helpers.user_setup import TestUserSetup
     user_setup = TestUserSetup(api_context, base_url, admin_token)
     return user_setup.ensure_users_exist()
 
 
 @pytest.fixture(scope="session")
 def docente_token(api_context, base_url, setup_roles):
+    from helpers.token_manager import TokenManager
     token_mgr = TokenManager(api_context, base_url)
     docente = setup_roles["DOCENTE"]
     return token_mgr.get_token(docente["rut"], docente["password"])
@@ -40,6 +81,7 @@ def docente_token(api_context, base_url, setup_roles):
 
 @pytest.fixture(scope="session")
 def apoderado_token(api_context, base_url, setup_roles):
+    from helpers.token_manager import TokenManager
     token_mgr = TokenManager(api_context, base_url)
     apoderado = setup_roles["APODERADO"]
     return token_mgr.get_token(apoderado["rut"], apoderado["password"])
@@ -47,6 +89,7 @@ def apoderado_token(api_context, base_url, setup_roles):
 
 @pytest.fixture(scope="session")
 def estudiante_token(api_context, base_url, setup_roles):
+    from helpers.token_manager import TokenManager
     token_mgr = TokenManager(api_context, base_url)
     estudiante = setup_roles["ESTUDIANTE"]
     return token_mgr.get_token(estudiante["rut"], estudiante["password"])

@@ -7,3 +7,5 @@ assets/
 node_modules/
 *.log
 .env
+videos/
+screenshots/
