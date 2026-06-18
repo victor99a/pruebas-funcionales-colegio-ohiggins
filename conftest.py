@@ -14,17 +14,16 @@ def frontend_url():
 
 
 @pytest.fixture(scope="session")
-def api_context(base_url):
-    with sync_playwright() as pw:
-        context = pw.request.new_context(base_url=base_url)
-        yield context
-        context.dispose()
-
-
-@pytest.fixture(scope="session")
 def playwright_instance():
     with sync_playwright() as pw:
         yield pw
+
+
+@pytest.fixture(scope="session")
+def api_context(playwright_instance, base_url):
+    context = playwright_instance.request.new_context(base_url=base_url)
+    yield context
+    context.dispose()
 
 
 @pytest.fixture(scope="session")
