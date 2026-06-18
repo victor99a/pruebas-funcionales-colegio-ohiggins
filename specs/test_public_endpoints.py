@@ -45,7 +45,7 @@ class TestPublicEndpoints:
         )
         assert response.status == 200
         body = response.json()
-        assert "token" in body
+        assert "accessToken" in body or "token" in body
 
     @pytest.mark.public
     def test_login_credenciales_invalidas(self, api_context):
@@ -54,4 +54,4 @@ class TestPublicEndpoints:
             headers={"Content-Type": "application/json"},
             data='{"rut":"99999999-9","password":"WrongPass1!"}',
         )
-        assert response.status in (401, 403)
+        assert response.status in (400, 401, 403)

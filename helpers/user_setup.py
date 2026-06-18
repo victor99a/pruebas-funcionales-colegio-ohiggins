@@ -53,7 +53,7 @@ class TestUserSetup:
         return self._users
 
     def _try_create_or_retrieve(self, role, user_data):
-        existing = self._find_existing_by_rut(user_data["rut"])
+        existing = self._find_existing_by_list(role, user_data["rut"])
         if existing:
             logger.info("User %s (%s) already exists: %s",
                         role, user_data["rut"], existing.get("id"))
@@ -64,17 +64,47 @@ class TestUserSetup:
                 "email": user_data["email"],
             }
 
-        return self._create_user(role, user_data)
+        result = self._create_user(role, user_data)
+        if result["uuid"]:
+            return result
 
-    def _find_existing_by_rut(self, rut):
+        existing = self._get_uuid_via_login(user_data["rut"], user_data["password"])
+        if existing:
+            logger.info("User %s (%s) retrieved UUID via login: %s",
+                        role, user_data["rut"], existing)
+            return {
+                "rut": user_data["rut"],
+                "password": user_data["password"],
+                "uuid": existing,
+                "email": user_data["email"],
+            }
+
+        logger.warning("Could not determine UUID for %s (%s)", role, user_data["rut"])
+        return result
+
+    def _find_existing_by_list(self, role, rut):
         response = self.api_context.get(
-            f"/api/v1/admin/buscar/rut/{rut}",
+            f"/api/v1/admin/listar/{role}",
             headers={"Authorization": f"Bearer {self.admin_token}"},
         )
         if response.status == 200:
+            users = response.json()
+            for user in users:
+                if user.get("rut") == rut:
+                    return user
+        return None
+
+    def _get_uuid_via_login(self, rut, password):
+        response = self.api_context.post(
+            "/api/v1/auth/login",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({"rut": rut, "password": password}),
+        )
+        if response.status == 200:
             body = response.json()
-            if body and body.get("id"):
-                return body
+            access_token = body.get("accessToken") or body.get("token")
+            if access_token:
+                return self._decode_jwt_uuid(access_token)
         return None
 
     def _create_user(self, role, user_data):
@@ -101,7 +131,13 @@ class TestUserSetup:
             )
 
         body = response.json() if response.text else {}
+
         user_uuid = body.get("id") or body.get("uuid") or body.get("userId")
+
+        if not user_uuid:
+            access_token = body.get("accessToken") or body.get("token")
+            if access_token:
+                user_uuid = self._decode_jwt_uuid(access_token)
 
         logger.info("Created %s user: rut=%s uuid=%s",
                     role, user_data["rut"], user_uuid)
@@ -112,3 +148,16 @@ class TestUserSetup:
             "uuid": user_uuid,
             "email": user_data["email"],
         }
+
+    @staticmethod
+    def _decode_jwt_uuid(token):
+        parts = token.split(".")
+        if len(parts) < 2:
+            return None
+        import base64
+        payload = parts[1]
+        padding = 4 - len(payload) % 4
+        if padding != 4:
+            payload += "=" * padding
+        decoded = json.loads(base64.urlsafe_b64decode(payload))
+        return decoded.get("userId")

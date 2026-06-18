@@ -42,9 +42,9 @@ class TokenManager:
             )
 
         body = response.json()
-        token = body.get("token")
+        token = body.get("accessToken") or body.get("token")
         if not token:
-            raise RuntimeError(f"Login response sin token para RUT {rut}")
+            raise RuntimeError(f"Login response sin token para RUT {rut}: {body}")
 
         self._cache[cache_key] = token
         return token

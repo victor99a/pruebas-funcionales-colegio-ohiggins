@@ -16,7 +16,7 @@ ENDPOINTS_ADMIN_DOCENTE = [
         "horasSemanales": 4,
     }),
     ("GET", "/api/v1/matriculas", None),
-    ("GET", "/api/v1/estudiantes", None),
+    ("GET", "/api/v1/calificaciones/curso/1/asignatura/1", None),
 ]
 
 
