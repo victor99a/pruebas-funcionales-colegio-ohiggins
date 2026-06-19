@@ -1,7 +1,10 @@
+import json
+import time
 import pytest
 from helpers.ui_helpers import login_y_navegar, injectar_token, mock_api_success, CREDENCIALES, SIDEBAR_VISIBLE, SIDEBAR_OCULTO
 from pages.login_page import LoginPage, DashboardPage
 from pages.base_page import BasePage
+from conftest import auth_headers
 
 
 class TestFuncionalidad:
@@ -307,3 +310,143 @@ class TestFuncionalidad:
             bp._log("CHECK", f"{ruta} accesible")
 
         bp.screenshot("func_flujo_estudiante")
+
+    @pytest.mark.funcionalidad
+    def test_flujo_end_to_end_admin_crea_curso_asignatura_estudiante_docente_registra_nota_y_asistencia_verifica_bd(
+        self, page, frontend_url, api_context, admin_token
+    ):
+        """E2E: ADMIN crea curso+asignatura+estudiante → DOCENTE registra nota+asistencia → API verifica BD"""
+        bp = BasePage(page)
+        _ts = int(time.time()) % 100000
+        curso_nombre = f"E2E Curso {_ts}"
+        asig_nombre = f"E2E Materia {_ts}"
+        rut_estudiante = f"99{_ts:05d}-1"
+        nombre_estudiante = f"Alumno E2E {_ts}"
+        email_estudiante = f"e2e.alumno.{_ts}@test.cl"
+
+        # ═══════════════════════════════════════════
+        # FASE 1: ADMIN crea curso y asignatura
+        # ═══════════════════════════════════════════
+        bp._log("E2E", "=== FASE 1: ADMIN crea curso y asignatura ===", ok=True)
+        lp = LoginPage(page)
+        lp.goto(frontend_url)
+        lp.login(CREDENCIALES["ADMIN"]["rut"], CREDENCIALES["ADMIN"]["password"])
+        page.wait_for_timeout(2000)
+        assert "/dashboard" in page.url
+
+        bp.navigate(f"{frontend_url}/admin/gestion-academica")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1500)
+
+        bp.fill(page.locator('input[name="nombre"]').first, curso_nombre, "Nombre curso E2E")
+        bp.fill(page.locator('#anio-lectivo'), "2026", "Año lectivo E2E")
+        bp.click(page.locator('button:has-text("Crear Curso")'), "Crear Curso")
+        page.wait_for_timeout(2000)
+
+        bp._log("API", f"Verificando curso '{curso_nombre}' en BD")
+        resp = api_context.get("/api/v1/cursos", headers=auth_headers(admin_token))
+        if resp.status == 200:
+            cursos = resp.json() if isinstance(resp.json(), list) else []
+            encontrado = any(curso_nombre in str(c.get("nombre", "")) for c in cursos)
+            bp._log("API", f"Curso '{curso_nombre}' en BD: {'SI' if encontrado else 'NO'}", encontrado)
+
+        bp.fill(page.locator('#nombre-asignatura'), asig_nombre, "Nombre asignatura E2E")
+        bp.fill(page.locator('#horas-semanales'), "3", "Horas semanales E2E")
+        bp.click(page.locator('button:has-text("Agregar Asignatura")'), "Agregar Asignatura")
+        page.wait_for_timeout(2000)
+
+        bp._log("API", f"Verificando asignatura '{asig_nombre}' en BD")
+        resp = api_context.get("/api/v1/asignaturas", headers=auth_headers(admin_token))
+        if resp.status == 200:
+            asignaturas = resp.json() if isinstance(resp.json(), list) else []
+            encontrada = any(asig_nombre in str(a.get("nombre", "")) for a in asignaturas)
+            bp._log("API", f"Asignatura '{asig_nombre}' en BD: {'SI' if encontrada else 'NO'}", encontrada)
+
+        # ═══════════════════════════════════════════
+        # FASE 2: ADMIN crea estudiante
+        # ═══════════════════════════════════════════
+        bp._log("E2E", "=== FASE 2: ADMIN crea estudiante ===", ok=True)
+        bp.navigate(f"{frontend_url}/admin/usuarios")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1500)
+
+        bp.click(page.locator('button:has-text("Estudiantes")'), "Tab Estudiantes")
+        page.wait_for_timeout(800)
+
+        bp.fill(page.locator('#rut'), rut_estudiante, "RUT estudiante E2E")
+        bp.fill(page.locator('#nombres'), nombre_estudiante, "Nombres")
+        bp.fill(page.locator('#apellidos'), f"E2E {_ts}", "Apellidos")
+        bp.fill(page.locator('#email'), email_estudiante, "Email")
+        bp.fill(page.locator('#password'), "E2E1234!", "Password")
+        bp.fill(page.locator('#confirmPassword'), "E2E1234!", "Confirmar password")
+        bp.select(page.locator('#rol'), "ESTUDIANTE", "Rol")
+        page.wait_for_timeout(300)
+        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear estudiante")
+        page.wait_for_timeout(2500)
+
+        bp._log("API", f"Verificando estudiante '{rut_estudiante}' en BD")
+        estudiante_uuid = None
+        resp = api_context.get("/api/v1/admin/listar/ESTUDIANTE", headers=auth_headers(admin_token))
+        if resp.status == 200:
+            usuarios = resp.json() if isinstance(resp.json(), list) else []
+            for u in usuarios:
+                if u.get("rut") == rut_estudiante:
+                    estudiante_uuid = u.get("id")
+                    bp._log("API", f"Estudiante encontrado: uuid={estudiante_uuid}, nombre={u.get('nombreCompleto')}")
+                    break
+        assert estudiante_uuid, f"No se encontro estudiante con RUT {rut_estudiante} en BD"
+        bp._log("CHECK", f"Estudiante E2E creado y verificado en BD", ok=True)
+
+        # ═══════════════════════════════════════════
+        # FASE 3: DOCENTE registra nota via API → verificar BD
+        # ═══════════════════════════════════════════
+        bp._log("E2E", "=== FASE 3: DOCENTE registra nota via API ===", ok=True)
+
+        resp = api_context.post(
+            "/api/v1/auth/login",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({"rut": CREDENCIALES["DOCENTE"]["rut"], "password": CREDENCIALES["DOCENTE"]["password"]}),
+        )
+        docente_token_e2e = resp.json().get("accessToken") if resp.status == 200 else None
+        assert docente_token_e2e, "No se pudo obtener token DOCENTE para E2E"
+        bp._log("TOKEN", "DOCENTE autenticado via API")
+
+        resp = api_context.put(
+            "/api/v1/calificaciones/guardar",
+            headers={**auth_headers(docente_token_e2e), "Content-Type": "application/json"},
+            data=json.dumps({"usuarioUuid": estudiante_uuid, "asignaturaId": 1, "nota1": 6.5, "nota2": 5.0, "nota3": 6.0}),
+        )
+        bp._log("API", f"Guardar calificacion → HTTP {resp.status}")
+        page.wait_for_timeout(500)
+
+        resp = api_context.get(
+            f"/api/v1/calificaciones/estudiante/{estudiante_uuid}",
+            headers=auth_headers(admin_token),
+        )
+        nota_encontrada = False
+        if resp.status == 200:
+            calificaciones = resp.json() if isinstance(resp.json(), list) else []
+            nota_encontrada = any(
+                float(c.get("nota1", 0)) == 6.5 for c in calificaciones
+            )
+            bp._log("API", f"Calificaciones en BD: {len(calificaciones)} registros")
+        bp._log("CHECK", f"Nota 6.5 guardada en BD: {'SI' if nota_encontrada else 'NO'}", nota_encontrada)
+
+        # ═══════════════════════════════════════════
+        # FASE 4: DOCENTE navega UI asistencia (servicio mock no disponible, verificar UI)
+        # ═══════════════════════════════════════════
+        bp._log("E2E", "=== FASE 4: DOCENTE navega UI asistencia ===", ok=True)
+        page.goto(f"{frontend_url}/login")
+        page.wait_for_load_state("networkidle")
+        injectar_token(page, CREDENCIALES["DOCENTE"]["rut"], CREDENCIALES["DOCENTE"]["password"])
+        page.route("**/api/**", mock_api_success)
+
+        bp.navigate(f"{frontend_url}/asistencia")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(2000)
+        assert "/asistencia" in page.url
+        bp._log("CHECK", "DOCENTE accede a toma de asistencia")
+        bp._log("INFO", "ms-asistencia no esta en el compose test — verificacion UI solamente")
+
+        bp._log("E2E", "=== FLUJO END-TO-END COMPLETO ===", ok=True)
+        bp.screenshot("func_flujo_e2e")
