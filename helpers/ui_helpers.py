@@ -41,7 +41,14 @@ def email_unico(rol="test"):
     return f"{rol.lower()}.{_ts}@test-funcional.cl"
 
 
+def _log(accion, detalle, ok=True):
+    icono = "OK" if ok else "ERROR"
+    check = "  ✅" if ok else "  ❌"
+    print(f"[{icono}]{check} {accion}: {detalle}")
+
+
 def injectar_token(page, rut, password, api_base="http://localhost:8080"):
+    _log("TOKEN", f"Inyectando token para RUT {rut}")
     token = page.evaluate("""
         async ({rut, password, apiUrl}) => {
             const resp = await fetch(apiUrl + '/api/v1/auth/login', {
@@ -55,6 +62,10 @@ def injectar_token(page, rut, password, api_base="http://localhost:8080"):
             return token;
         }
     """, {"rut": rut, "password": password, "apiUrl": api_base})
+    if token:
+        _log("TOKEN", f"Token obtenido ({len(token)} chars)")
+    else:
+        _log("TOKEN", "Token NO obtenido", ok=False)
     return token
 
 
@@ -72,31 +83,38 @@ def mock_api_success(route):
 
 
 def login_y_navegar(page, frontend_url, rol, pagina_destino):
+    _log("LOGIN", f"Iniciando como {rol} → {pagina_destino}")
     creds = CREDENCIALES[rol]
     if rol == "ADMIN":
         from pages.login_page import LoginPage
-        login_page = LoginPage(page)
-        login_page.goto(frontend_url)
-        login_page.login(creds["rut"], creds["password"])
+        lp = LoginPage(page)
+        lp.goto(frontend_url)
+        lp.login(creds["rut"], creds["password"])
         page.wait_for_timeout(2000)
     else:
         page.goto(f"{frontend_url}/login")
         page.wait_for_load_state("networkidle")
         injectar_token(page, creds["rut"], creds["password"])
+        _log("MOCK", "API interceptada para rol no-ADMIN")
         page.route("**/api/**", mock_api_success)
 
+    _log("NAV", pagina_destino)
     page.goto(f"{frontend_url}{pagina_destino}")
     page.wait_for_load_state("networkidle")
     page.wait_for_timeout(2000)
+    _log("READY", f"Página cargada: {page.url}")
     return page
 
 
 def login_y_navegar_sin_mock(page, frontend_url, rol, pagina_destino):
+    _log("LOGIN", f"Iniciando como {rol} (sin mock) → {pagina_destino}")
     creds = CREDENCIALES[rol]
     page.goto(f"{frontend_url}/login")
     page.wait_for_load_state("networkidle")
     injectar_token(page, creds["rut"], creds["password"])
 
+    _log("NAV", pagina_destino)
     page.goto(f"{frontend_url}{pagina_destino}")
     page.wait_for_timeout(3000)
+    _log("READY", f"Página cargada: {page.url}")
     return page
