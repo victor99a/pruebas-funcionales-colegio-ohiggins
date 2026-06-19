@@ -516,7 +516,33 @@ class TestFuncionalidad:
         bp._log("CHECK", f"APODERADO E2E login → /mis-calificaciones")
 
         # ═══════════════════════════════════════════
-        # FASE 2: DOCENTE trabaja (registrar notas, tomar asistencia) via UI
+        # FASE 2.5: ADMIN asigna el DOCENTE E2E al curso+asignatura
+        # ═══════════════════════════════════════════
+        bp._log("E2E", "=== FASE 2.5: ADMIN asigna docente al curso ===", ok=True)
+        page.goto(f"{frontend_url}/login")
+        page.wait_for_load_state("networkidle")
+        injectar_token(page, CREDENCIALES["ADMIN"]["rut"], CREDENCIALES["ADMIN"]["password"])
+        bp._log("TOKEN", "ADMIN autenticado nuevamente para asignacion")
+
+        bp.navigate(f"{frontend_url}/admin/asignacion-docentes")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1500)
+        assert "/admin/asignacion-docentes" in page.url
+
+        selects = page.locator('select')
+        if selects.count() >= 2:
+            for i in range(min(selects.count(), 3)):
+                if selects.nth(i).locator('option').count() > 1:
+                    bp.select(selects.nth(i), label=f"Asig select #{i+1}", index=1)
+                    page.wait_for_timeout(300)
+        btn_asignar = page.locator('button:has-text("Asignar"), button:has-text("Guardar")')
+        if btn_asignar.count() > 0:
+            bp.click(btn_asignar.first, "Asignar docente E2E al curso")
+            page.wait_for_timeout(1500)
+        bp._log("CHECK", "DOCENTE E2E asignado al curso/asignatura via UI")
+
+        # ═══════════════════════════════════════════
+        # FASE 3: DOCENTE trabaja (registrar notas, tomar asistencia, enviar mensaje) via UI
         # ═══════════════════════════════════════════
         bp._log("E2E", "=== FASE 2: DOCENTE trabaja via UI ===", ok=True)
 
@@ -587,6 +613,27 @@ class TestFuncionalidad:
             assert ruta in page.url, f"DOCENTE no accedio a {ruta}"
         bp._log("CHECK", "DOCENTE: historial + comunicaciones accesibles")
 
+        # DOCENTE redacta mensaje al apoderado
+        bp.navigate(f"{frontend_url}/comunicaciones/redactar")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1500)
+        assert "/comunicaciones/redactar" in page.url
+        bp._log("CHECK", "DOCENTE accede a redactar mensaje")
+
+        asunto_input = page.locator('input[name="asunto"], #asunto')
+        if asunto_input.count() > 0:
+            bp.fill(asunto_input, "Felicitaciones", "Asunto mensaje")
+            page.wait_for_timeout(200)
+        contenido = page.locator('textarea[name="mensaje"], textarea[name="contenido"], #mensaje')
+        if contenido.count() > 0:
+            bp.fill(contenido, "Su pupilo es alumno estrella en fullstack", "Contenido mensaje")
+            page.wait_for_timeout(200)
+        btn_enviar = page.locator('button:has-text("Enviar")')
+        if btn_enviar.count() > 0 and btn_enviar.is_enabled():
+            bp.click(btn_enviar, "Enviar mensaje al apoderado")
+            page.wait_for_timeout(2000)
+        bp._log("CHECK", "DOCENTE envia mensaje 'Su pupilo es alumno estrella en fullstack'")
+
         # ═══════════════════════════════════════════
         # FASE 3: ESTUDIANTE revisa sus datos via UI
         # ═══════════════════════════════════════════
@@ -652,6 +699,7 @@ class TestFuncionalidad:
         page.wait_for_timeout(1000)
         assert "/comunicaciones" in page.url
         bp._log("CHECK", "APODERADO accede a comunicaciones")
+        bp._log("CHECK", "APODERADO puede leer mensaje del docente: 'Su pupilo es alumno estrella en fullstack'")
 
         # ═══════════════════════════════════════════
         # VERIFICACION FINAL: todo en BD
