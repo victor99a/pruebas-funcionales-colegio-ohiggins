@@ -118,7 +118,24 @@ class TestFuncionalidad:
         page.wait_for_timeout(300)
         bp.click(page.locator('button:has-text("Crear usuario")'), "Crear estudiante")
         page.wait_for_timeout(2000)
-        bp._log("CHECK", "Docente y estudiante creados")
+
+        bp.click(page.locator('button:has-text("Apoderados")'), "Tab Apoderados")
+        page.wait_for_timeout(800)
+        bp.fill(page.locator('#rut'), "26000004-0", "RUT apoderado")
+        bp.fill(page.locator('#nombres'), "Apo", "Nombres")
+        bp.fill(page.locator('#apellidos'), "Flujo Final", "Apellidos")
+        bp.fill(page.locator('#email'), "apoderado.final@test.cl", "Email")
+        bp.fill(page.locator('#password'), "Final123!", "Password")
+        bp.fill(page.locator('#confirmPassword'), "Final123!", "Confirmar password")
+        bp.select(page.locator('#rol'), "APODERADO", "Rol")
+        page.wait_for_timeout(500)
+        pupilo = page.locator('#pupiloUuid')
+        if pupilo.count() > 0 and pupilo.locator('option').count() > 1:
+            bp.select(pupilo, label="Pupilo", index=1)
+            page.wait_for_timeout(300)
+        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear apoderado")
+        page.wait_for_timeout(2000)
+        bp._log("CHECK", "Docente, estudiante y apoderado vinculado creados")
 
         bp.navigate(f"{frontend_url}/admin/asignacion-docentes")
         page.wait_for_load_state("networkidle")
@@ -396,6 +413,48 @@ class TestFuncionalidad:
                     break
         assert estudiante_uuid, f"No se encontro estudiante con RUT {rut_estudiante} en BD"
         bp._log("CHECK", f"Estudiante E2E creado y verificado en BD", ok=True)
+
+        # ═══════════════════════════════════════════
+        # FASE 2.5: ADMIN crea APODERADO vinculado al estudiante
+        # ═══════════════════════════════════════════
+        bp._log("E2E", "=== FASE 2.5: ADMIN crea apoderado vinculado al estudiante ===", ok=True)
+        rut_apoderado = f"98{_ts:05d}-2"
+        email_apoderado = f"e2e.apoderado.{_ts}@test.cl"
+
+        bp.click(page.locator('button:has-text("Apoderados")'), "Tab Apoderados")
+        page.wait_for_timeout(800)
+
+        bp.fill(page.locator('#rut'), rut_apoderado, "RUT apoderado E2E")
+        bp.fill(page.locator('#nombres'), f"Apoderado E2E {_ts}", "Nombres")
+        bp.fill(page.locator('#apellidos'), f"E2E {_ts}", "Apellidos")
+        bp.fill(page.locator('#email'), email_apoderado, "Email")
+        bp.fill(page.locator('#password'), "E2E1234!", "Password")
+        bp.fill(page.locator('#confirmPassword'), "E2E1234!", "Confirmar password")
+        bp.select(page.locator('#rol'), "APODERADO", "Rol")
+        page.wait_for_timeout(500)
+
+        pupilo_select = page.locator('#pupiloUuid')
+        if pupilo_select.count() > 0 and pupilo_select.locator('option').count() > 1:
+            bp.select(pupilo_select, label="Pupilo", index=1)
+            page.wait_for_timeout(300)
+
+        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear apoderado E2E")
+        page.wait_for_timeout(2500)
+
+        # Verificar en BD que el apoderado tiene pupiloUuid
+        bp._log("API", f"Verificando apoderado '{rut_apoderado}' con pupiloUuid en BD")
+        apoderado_pupilo_ok = False
+        resp = api_context.get("/api/v1/admin/listar/APODERADO", headers=auth_headers(admin_token))
+        if resp.status == 200:
+            usuarios = resp.json() if isinstance(resp.json(), list) else []
+            for u in usuarios:
+                if u.get("rut") == rut_apoderado:
+                    puuid = u.get("pupiloUuid")
+                    bp._log("API", f"Apoderado encontrado: uuid={u.get('id')}, pupiloUuid={puuid}")
+                    if puuid is not None and str(puuid) != "None":
+                        apoderado_pupilo_ok = True
+                    break
+        bp._log("CHECK", f"Apoderado E2E vinculado a estudiante: {'SI' if apoderado_pupilo_ok else 'NO'}", apoderado_pupilo_ok)
 
         # ═══════════════════════════════════════════
         # FASE 3: DOCENTE registra nota via API → verificar BD
