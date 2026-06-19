@@ -69,14 +69,46 @@ def injectar_token(page, rut, password, api_base="http://localhost:8080"):
     return token
 
 
+_MOCK_STUDENTS = (
+    '[{"id":1,"rut":"11111111-1","nombre":"Alumno Uno"},'
+    '{"id":2,"rut":"22222222-2","nombre":"Alumno Dos"},'
+    '{"id":3,"rut":"33333333-3","nombre":"Alumno Tres"}]'
+)
+_MOCK_CURSOS = (
+    '[{"id":1,"nombre":"1ro Basico","anioEscolar":2026},'
+    '{"id":2,"nombre":"2do Basico","anioEscolar":2026}]'
+)
+_MOCK_ASIGNATURAS = (
+    '[{"id":1,"nombre":"Matematicas","horasSemanales":6},'
+    '{"id":2,"nombre":"Lenguaje","horasSemanales":6},'
+    '{"id":3,"nombre":"Historia","horasSemanales":4}]'
+)
+_MOCK_DESTINATARIOS = (
+    '[{"id":"a0000000-0000-0000-0000-000000000001","nombreCompleto":"Apoderado Prueba","rol":"APODERADO"},'
+    '{"id":"d0000000-0000-0000-0000-000000000001","nombreCompleto":"Docente Prueba","rol":"DOCENTE"}]'
+)
+
+
 def mock_api_success(route):
     url = route.request.url
     if "dashboard" in url:
-        body = '{"totalEstudiantes":0,"totalDocentes":0,"totalCursos":0,"totalAsignaturas":0}'
-    elif "listar" in url or "bandeja" in url or "curso" in url or "estudiante" in url:
-        body = "[]"
+        body = '{"totalEstudiantes":3,"totalDocentes":2,"totalCursos":2,"totalAsignaturas":3}'
     elif "boletin" in url:
-        body = '{"nombreCompleto":"Test","curso":"1ro Basico","promedioGeneral":6.0,"porcentajeAsistencia":95,"calificaciones":[]}'
+        body = '{"nombreCompleto":"Alumno Test","curso":"1ro Basico","promedioGeneral":6.0,"porcentajeAsistencia":95,"calificaciones":[]}'
+    elif "destinatarios" in url:
+        body = _MOCK_DESTINATARIOS
+    elif "calificaciones" in url:
+        body = _MOCK_STUDENTS
+    elif "asistencia" in url and ("curso" in url or "estudiante" in url):
+        body = _MOCK_STUDENTS
+    elif "cursos" in url:
+        body = _MOCK_CURSOS
+    elif "asignaturas" in url:
+        body = _MOCK_ASIGNATURAS
+    elif "listar" in url or "bandeja" in url or "usuarios" in url:
+        body = _MOCK_STUDENTS
+    elif "estudiantes" in url:
+        body = _MOCK_STUDENTS
     else:
         body = "{}"
     route.fulfill(status=200, content_type="application/json", body=body)

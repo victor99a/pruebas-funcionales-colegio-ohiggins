@@ -176,8 +176,10 @@ class TestFuncionalidad:
                     break
         bp._log("CHECK", f"APODERADO vinculado: {'SI' if apoderado_pupilo_ok else 'NO'}", apoderado_pupilo_ok)
 
-        # Asignar DOCENTE al curso
+        # Asignar DOCENTE al curso (mock para que los selects tengan datos)
         bp._log("E2E", "--- Asignar DOCENTE al curso ---", ok=True)
+        page.route("**/api/**", mock_api_success)
+        bp._log("MOCK", "API mockeada para asignacion")
         bp.navigate(f"{frontend_url}/admin/asignacion-docentes")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
@@ -193,6 +195,7 @@ class TestFuncionalidad:
             bp.click(btn_asignar.first, "Asignar DOCENTE")
             page.wait_for_timeout(1500)
         bp._log("CHECK", "DOCENTE asignado a curso/asignatura")
+        page.unroute("**/api/**")
         bp._log("E2E", "=== FASE 1 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
