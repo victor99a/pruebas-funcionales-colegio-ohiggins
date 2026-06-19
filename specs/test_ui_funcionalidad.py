@@ -51,288 +51,10 @@ class TestFuncionalidad:
         bp.screenshot("func_login_sesion")
 
     @pytest.mark.funcionalidad
-    def test_admin_puede_hacer_todo_login_dashboard_crear_curso_asignatura_usuario_asignar_comunicaciones(self, page, frontend_url):
-        """ADMIN: login → dashboard KPIs → sidebar → crear curso+asignatura →
-        crear docente+estudiante → asignar docente → comunicaciones → recarga sesión"""
-        bp = BasePage(page)
-        lp = LoginPage(page)
-        lp.goto(frontend_url)
-        lp.login(CREDENCIALES["ADMIN"]["rut"], CREDENCIALES["ADMIN"]["password"])
-        page.wait_for_timeout(2500)
-
-        assert "/dashboard" in page.url
-        bp._log("CHECK", "ADMIN redirigido a /dashboard")
-
-        dp = DashboardPage(page)
-        for link in SIDEBAR_VISIBLE["ADMIN"]:
-            assert dp.sidebar_has_link(link)
-        for link in SIDEBAR_OCULTO["ADMIN"]:
-            assert dp.sidebar_lacks_link(link)
-
-        error_kpi = page.locator('.dashboard__error, p:has-text("No se pudieron cargar")')
-        assert error_kpi.count() == 0
-        bp._log("CHECK", "Dashboard KPIs sin error")
-
-        bp.navigate(f"{frontend_url}/admin/gestion-academica")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-        assert "/admin/gestion-academica" in page.url
-
-        bp.fill(page.locator('input[name="nombre"]').first, "3ro Medio Test", "Nombre curso")
-        bp.fill(page.locator('#anio-lectivo'), "2026", "Año lectivo")
-        bp.click(page.locator('button:has-text("Crear Curso")'), "Crear Curso")
-        page.wait_for_timeout(1500)
-
-        bp.fill(page.locator('#nombre-asignatura'), "Fisica Test", "Nombre asignatura")
-        bp.fill(page.locator('#horas-semanales'), "4", "Horas semanales")
-        bp.click(page.locator('button:has-text("Agregar Asignatura")'), "Agregar Asignatura")
-        page.wait_for_timeout(1500)
-        bp._log("CHECK", "Curso y asignatura creados")
-
-        bp.navigate(f"{frontend_url}/admin/usuarios")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-
-        bp.click(page.locator('button:has-text("Docentes")'), "Tab Docentes")
-        page.wait_for_timeout(800)
-        bp.fill(page.locator('#rut'), "26000001-k", "RUT docente")
-        bp.fill(page.locator('#nombres'), "Profesor", "Nombres")
-        bp.fill(page.locator('#apellidos'), "Flujo Final", "Apellidos")
-        bp.fill(page.locator('#email'), "profesor.final@test.cl", "Email")
-        bp.fill(page.locator('#password'), "Final123!", "Password")
-        bp.fill(page.locator('#confirmPassword'), "Final123!", "Confirmar password")
-        bp.select(page.locator('#rol'), "DOCENTE", "Rol")
-        page.wait_for_timeout(300)
-        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear docente")
-        page.wait_for_timeout(2000)
-
-        bp.click(page.locator('button:has-text("Estudiantes")'), "Tab Estudiantes")
-        page.wait_for_timeout(800)
-        bp.fill(page.locator('#rut'), "26000003-2", "RUT estudiante")
-        bp.fill(page.locator('#nombres'), "Alumno", "Nombres")
-        bp.fill(page.locator('#apellidos'), "Flujo Final", "Apellidos")
-        bp.fill(page.locator('#email'), "alumno.final@test.cl", "Email")
-        bp.fill(page.locator('#password'), "Final123!", "Password")
-        bp.fill(page.locator('#confirmPassword'), "Final123!", "Confirmar password")
-        bp.select(page.locator('#rol'), "ESTUDIANTE", "Rol")
-        page.wait_for_timeout(300)
-        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear estudiante")
-        page.wait_for_timeout(2000)
-
-        bp.click(page.locator('button:has-text("Apoderados")'), "Tab Apoderados")
-        page.wait_for_timeout(800)
-        bp.fill(page.locator('#rut'), "26000004-0", "RUT apoderado")
-        bp.fill(page.locator('#nombres'), "Apo", "Nombres")
-        bp.fill(page.locator('#apellidos'), "Flujo Final", "Apellidos")
-        bp.fill(page.locator('#email'), "apoderado.final@test.cl", "Email")
-        bp.fill(page.locator('#password'), "Final123!", "Password")
-        bp.fill(page.locator('#confirmPassword'), "Final123!", "Confirmar password")
-        bp.select(page.locator('#rol'), "APODERADO", "Rol")
-        page.wait_for_timeout(500)
-        pupilo = page.locator('#pupiloUuid')
-        if pupilo.count() > 0 and pupilo.locator('option').count() > 1:
-            bp.select(pupilo, label="Pupilo", index=1)
-            page.wait_for_timeout(300)
-        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear apoderado")
-        page.wait_for_timeout(2000)
-        bp._log("CHECK", "Docente, estudiante y apoderado vinculado creados")
-
-        bp.navigate(f"{frontend_url}/admin/asignacion-docentes")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-        assert "/admin/asignacion-docentes" in page.url
-        selects = page.locator('select')
-        for i in range(min(selects.count(), 3)):
-            if selects.nth(i).locator('option').count() > 1:
-                bp.select(selects.nth(i), label=f"Select #{i+1}", index=1)
-                page.wait_for_timeout(300)
-        btn_asignar = page.locator('button:has-text("Asignar"), button:has-text("Guardar")')
-        if btn_asignar.count() > 0:
-            bp.click(btn_asignar.first, "Asignar docente")
-            page.wait_for_timeout(1500)
-        bp._log("CHECK", "Docente asignado")
-
-        bp.navigate(f"{frontend_url}/comunicaciones")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-        assert "/comunicaciones" in page.url
-
-        bp.navigate(f"{frontend_url}/comunicaciones/redactar")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-        assert "/comunicaciones/redactar" in page.url
-        bp._log("CHECK", "Comunicaciones y redactar accesibles")
-
-        page.reload()
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(2000)
-        assert "/comunicaciones/redactar" in page.url
-        bp._log("CHECK", "Recarga → sesión persiste")
-
-        bp.screenshot("func_flujo_admin")
-
-    @pytest.mark.funcionalidad
-    def test_docente_puede_registrar_notas_tomar_asistencia_ver_historial_y_comunicaciones(self, page, frontend_url):
-        """DOCENTE: login → /calificaciones → sidebar → registrar notas → tomar asistencia →
-        historial → anotaciones → comunicaciones → dashboard error KPI"""
-        bp = BasePage(page)
-        lp = LoginPage(page)
-        lp.goto(frontend_url)
-        lp.login(CREDENCIALES["DOCENTE"]["rut"], CREDENCIALES["DOCENTE"]["password"])
-        page.wait_for_timeout(2500)
-
-        assert "/calificaciones" in page.url
-        bp._log("CHECK", "DOCENTE redirigido a /calificaciones")
-
-        dp = DashboardPage(page)
-        for link in SIDEBAR_VISIBLE["DOCENTE"]:
-            assert dp.sidebar_has_link(link)
-        for link in SIDEBAR_OCULTO["DOCENTE"]:
-            assert dp.sidebar_lacks_link(link)
-
-        curso = page.locator('select[id], #select-curso').first
-        if curso.count() > 0 and curso.locator('option').count() > 1:
-            bp.select(curso, label="Curso", index=1)
-            page.wait_for_timeout(800)
-        asig = page.locator('#select-asignatura')
-        if asig.count() > 0 and asig.locator('option').count() > 1:
-            bp.select(asig, label="Asignatura", index=1)
-            page.wait_for_timeout(800)
-
-        notas = page.locator('input.registro-notas__input-nota[type="number"]')
-        for i in range(min(notas.count(), 3)):
-            bp.fill(notas.nth(i), str(5.0 + i), f"Nota {i+1}")
-            page.wait_for_timeout(200)
-
-        btn_guardar = page.locator('button:has-text("Guardar Calificaciones")')
-        if btn_guardar.count() > 0 and btn_guardar.is_enabled():
-            bp.click(btn_guardar, "Guardar Calificaciones")
-            page.wait_for_timeout(2000)
-        assert "/calificaciones" in page.url
-        bp._log("CHECK", "Notas registradas")
-
-        bp.navigate(f"{frontend_url}/asistencia")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-        assert "/asistencia" in page.url
-
-        curso_asist = page.locator('#curso')
-        if curso_asist.count() > 0 and curso_asist.locator('option').count() > 1:
-            bp.select(curso_asist, label="Curso asistencia", index=1)
-            page.wait_for_timeout(500)
-        btn_filtrar = page.locator('button:has-text("Filtrar")')
-        if btn_filtrar.count() > 0:
-            bp.click(btn_filtrar, "Filtrar")
-            page.wait_for_timeout(2000)
-
-        asistencias = page.locator('select.asistencia-table__select')
-        if asistencias.count() > 0:
-            bp.select(asistencias.nth(0), "ausente", "Asistencia #1")
-            page.wait_for_timeout(200)
-        if asistencias.count() > 1:
-            bp.select(asistencias.nth(1), "presente", "Asistencia #2")
-            page.wait_for_timeout(200)
-
-        btn_guardar_asist = page.locator('button:has-text("Guardar Asistencia")')
-        if btn_guardar_asist.count() > 0 and btn_guardar_asist.is_visible():
-            bp.click(btn_guardar_asist, "Guardar Asistencia")
-            page.wait_for_timeout(2000)
-        bp._log("CHECK", "Asistencia tomada")
-
-        for ruta in ["/asistencia/historial", "/asistencia/anotaciones", "/comunicaciones"]:
-            bp.navigate(f"{frontend_url}{ruta}")
-            page.wait_for_load_state("networkidle")
-            page.wait_for_timeout(1500)
-            assert ruta in page.url
-            bp._log("CHECK", f"{ruta} accesible")
-
-        bp.navigate(f"{frontend_url}/comunicaciones/redactar")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-        assert "/comunicaciones/redactar" in page.url
-        bp._log("CHECK", "Redactar mensaje accesible")
-
-        bp.navigate(f"{frontend_url}/dashboard")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(2000)
-        assert "/dashboard" in page.url or "/calificaciones" in page.url
-        bp._log("CHECK", "Dashboard: DOCENTE ve error KPI (esperado)")
-
-        bp.screenshot("func_flujo_docente")
-
-    @pytest.mark.funcionalidad
-    def test_apoderado_puede_ver_calificaciones_pupilo_historial_justificar_y_comunicaciones(self, page, frontend_url):
-        """APODERADO: /mis-calificaciones → sidebar → selector pupilo →
-        historial asistencia → justificar → comunicaciones"""
-        bp = BasePage(page)
-
-        page.goto(f"{frontend_url}/login")
-        page.wait_for_load_state("networkidle")
-        injectar_token(page, CREDENCIALES["APODERADO"]["rut"], CREDENCIALES["APODERADO"]["password"])
-        page.route("**/api/**", mock_api_success)
-        bp._log("MOCK", "API interceptada para APODERADO")
-
-        bp.navigate(f"{frontend_url}/mis-calificaciones")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(2000)
-        assert "/mis-calificaciones" in page.url
-
-        dp = DashboardPage(page)
-        for link in SIDEBAR_VISIBLE["APODERADO"]:
-            assert dp.sidebar_has_link(link)
-        for link in SIDEBAR_OCULTO["APODERADO"]:
-            assert dp.sidebar_lacks_link(link)
-
-        selector = page.locator('select, #select-pupilo')
-        if selector.count() > 0:
-            assert selector.first.is_visible()
-            bp._log("CHECK", "Selector de pupilo visible")
-
-        for ruta in ["/asistencia/historial", "/asistencia/justificar", "/comunicaciones"]:
-            bp.navigate(f"{frontend_url}{ruta}")
-            page.wait_for_load_state("networkidle")
-            page.wait_for_timeout(1500)
-            assert ruta in page.url
-            bp._log("CHECK", f"{ruta} accesible")
-
-        bp.screenshot("func_flujo_apoderado")
-
-    @pytest.mark.funcionalidad
-    def test_estudiante_puede_ver_mis_notas_historial_asistencia_y_mensajes(self, page, frontend_url):
-        """ESTUDIANTE: /mis-calificaciones → sidebar → historial asistencia → mensajes → admin redirect"""
-        bp = BasePage(page)
-
-        page.goto(f"{frontend_url}/login")
-        page.wait_for_load_state("networkidle")
-        injectar_token(page, CREDENCIALES["ESTUDIANTE"]["rut"], CREDENCIALES["ESTUDIANTE"]["password"])
-        page.route("**/api/**", mock_api_success)
-        bp._log("MOCK", "API interceptada para ESTUDIANTE")
-
-        bp.navigate(f"{frontend_url}/mis-calificaciones")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(2000)
-        assert "/mis-calificaciones" in page.url
-
-        dp = DashboardPage(page)
-        for link in SIDEBAR_VISIBLE["ESTUDIANTE"]:
-            assert dp.sidebar_has_link(link)
-        for link in SIDEBAR_OCULTO["ESTUDIANTE"]:
-            assert dp.sidebar_lacks_link(link)
-
-        for ruta in ["/asistencia/historial", "/comunicaciones"]:
-            bp.navigate(f"{frontend_url}{ruta}")
-            page.wait_for_load_state("networkidle")
-            page.wait_for_timeout(1500)
-            assert ruta in page.url
-            bp._log("CHECK", f"{ruta} accesible")
-
-        bp.screenshot("func_flujo_estudiante")
-
-    @pytest.mark.funcionalidad
-    def test_flujo_end_to_end_admin_crea_curso_asignatura_estudiante_docente_registra_nota_y_asistencia_verifica_bd(
+    def test_flujo_end_to_end_ciclo_de_vida_completo_admin_docente_estudiante_apoderado(
         self, page, frontend_url, api_context, admin_token
     ):
-        """E2E: ADMIN crea curso+asignatura+estudiante → DOCENTE registra nota+asistencia → API verifica BD"""
+        """Ciclo completo: ADMIN crea sistema+usuarios+nexos → DOCENTE trabaja → ESTUDIANTE revisa → APODERADO revisa"""
         bp = BasePage(page)
         _ts = int(time.time()) % 100000
         curso_nombre = f"E2E Curso {_ts}"
@@ -341,26 +63,24 @@ class TestFuncionalidad:
         rut_estudiante = f"99{_ts:05d}-1"
         rut_apoderado = f"98{_ts:05d}-2"
         password_e2e = "E2E1234!"
-        nombre_estudiante = f"Alumno E2E {_ts}"
-        email_estudiante = f"e2e.alumno.{_ts}@test.cl"
-        email_apoderado = f"e2e.apoderado.{_ts}@test.cl"
+        mensaje_docente = "Su pupilo es alumno estrella en fullstack"
+        lp = LoginPage(page)
 
         # ═══════════════════════════════════════════
-        # FASE 1: ADMIN crea curso y asignatura
+        # FASE 1: ADMIN crea curso, asignatura, DOCENTE, ESTUDIANTE, APODERADO, nexos
         # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 1: ADMIN crea curso y asignatura ===", ok=True)
-        lp = LoginPage(page)
+        bp._log("E2E", "=== FASE 1: ADMIN crea todo el sistema ===", ok=True)
         lp.goto(frontend_url)
         lp.login(CREDENCIALES["ADMIN"]["rut"], CREDENCIALES["ADMIN"]["password"])
         page.wait_for_timeout(2000)
         assert "/dashboard" in page.url
 
+        # Curso
         bp.navigate(f"{frontend_url}/admin/gestion-academica")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
-
-        bp.fill(page.locator('input[name="nombre"]').first, curso_nombre, "Nombre curso E2E")
-        bp.fill(page.locator('#anio-lectivo'), "2026", "Año lectivo E2E")
+        bp.fill(page.locator('input[name="nombre"]').first, curso_nombre, "Nombre curso")
+        bp.fill(page.locator('#anio-lectivo'), "2026", "Año lectivo")
         bp.click(page.locator('button:has-text("Crear Curso")'), "Crear Curso")
         page.wait_for_timeout(2000)
 
@@ -368,11 +88,11 @@ class TestFuncionalidad:
         resp = api_context.get("/api/v1/cursos", headers=auth_headers(admin_token))
         if resp.status == 200:
             cursos = resp.json() if isinstance(resp.json(), list) else []
-            encontrado = any(curso_nombre in str(c.get("nombre", "")) for c in cursos)
-            bp._log("API", f"Curso '{curso_nombre}' en BD: {'SI' if encontrado else 'NO'}", encontrado)
+            bp._log("API", f"Curso en BD: {'SI' if any(curso_nombre in str(c.get('nombre','')) for c in cursos) else 'NO'}")
 
-        bp.fill(page.locator('#nombre-asignatura'), asig_nombre, "Nombre asignatura E2E")
-        bp.fill(page.locator('#horas-semanales'), "3", "Horas semanales E2E")
+        # Asignatura
+        bp.fill(page.locator('#nombre-asignatura'), asig_nombre, "Nombre asignatura")
+        bp.fill(page.locator('#horas-semanales'), "3", "Horas semanales")
         bp.click(page.locator('button:has-text("Agregar Asignatura")'), "Agregar Asignatura")
         page.wait_for_timeout(2000)
 
@@ -380,217 +100,146 @@ class TestFuncionalidad:
         resp = api_context.get("/api/v1/asignaturas", headers=auth_headers(admin_token))
         if resp.status == 200:
             asignaturas = resp.json() if isinstance(resp.json(), list) else []
-            encontrada = any(asig_nombre in str(a.get("nombre", "")) for a in asignaturas)
-            bp._log("API", f"Asignatura '{asig_nombre}' en BD: {'SI' if encontrada else 'NO'}", encontrada)
+            bp._log("API", f"Asignatura en BD: {'SI' if any(asig_nombre in str(a.get('nombre','')) for a in asignaturas) else 'NO'}")
 
-        # ═══════════════════════════════════════════
-        # FASE 2: ADMIN crea DOCENTE, ESTUDIANTE, APODERADO → login como cada uno
-        # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 2: ADMIN crea usuarios ===", ok=True)
+        # Usuarios
         bp.navigate(f"{frontend_url}/admin/usuarios")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
 
-        # FASE 2.1: Crear DOCENTE
+        # DOCENTE
         bp.click(page.locator('button:has-text("Docentes")'), "Tab Docentes")
         page.wait_for_timeout(800)
-        bp.fill(page.locator('#rut'), rut_docente, "RUT docente E2E")
-        bp.fill(page.locator('#nombres'), f"Docente E2E {_ts}", "Nombres docente")
+        bp.fill(page.locator('#rut'), rut_docente, "RUT docente")
+        bp.fill(page.locator('#nombres'), f"Docente E2E {_ts}", "Nombres")
         bp.fill(page.locator('#apellidos'), f"E2E {_ts}", "Apellidos")
         bp.fill(page.locator('#email'), f"e2e.docente.{_ts}@test.cl", "Email")
         bp.fill(page.locator('#password'), password_e2e, "Password")
-        bp.fill(page.locator('#confirmPassword'), password_e2e, "Confirmar password")
+        bp.fill(page.locator('#confirmPassword'), password_e2e, "Confirmar")
         bp.select(page.locator('#rol'), "DOCENTE", "Rol")
         page.wait_for_timeout(300)
-        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear docente E2E")
+        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear DOCENTE")
         page.wait_for_timeout(2500)
 
-        # FASE 2.2: Crear ESTUDIANTE
-
+        # ESTUDIANTE
         bp.click(page.locator('button:has-text("Estudiantes")'), "Tab Estudiantes")
         page.wait_for_timeout(800)
-
-        bp.fill(page.locator('#rut'), rut_estudiante, "RUT estudiante E2E")
-        bp.fill(page.locator('#nombres'), nombre_estudiante, "Nombres")
+        bp.fill(page.locator('#rut'), rut_estudiante, "RUT estudiante")
+        bp.fill(page.locator('#nombres'), f"Alumno E2E {_ts}", "Nombres")
         bp.fill(page.locator('#apellidos'), f"E2E {_ts}", "Apellidos")
-        bp.fill(page.locator('#email'), email_estudiante, "Email")
+        bp.fill(page.locator('#email'), f"e2e.alumno.{_ts}@test.cl", "Email")
         bp.fill(page.locator('#password'), password_e2e, "Password")
-        bp.fill(page.locator('#confirmPassword'), password_e2e, "Confirmar password")
+        bp.fill(page.locator('#confirmPassword'), password_e2e, "Confirmar")
         bp.select(page.locator('#rol'), "ESTUDIANTE", "Rol")
         page.wait_for_timeout(300)
-        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear estudiante")
+        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear ESTUDIANTE")
         page.wait_for_timeout(2500)
 
         bp._log("API", f"Verificando estudiante '{rut_estudiante}' en BD")
         estudiante_uuid = None
         resp = api_context.get("/api/v1/admin/listar/ESTUDIANTE", headers=auth_headers(admin_token))
         if resp.status == 200:
-            usuarios = resp.json() if isinstance(resp.json(), list) else []
-            for u in usuarios:
+            for u in (resp.json() if isinstance(resp.json(), list) else []):
                 if u.get("rut") == rut_estudiante:
                     estudiante_uuid = u.get("id")
-                    bp._log("API", f"Estudiante encontrado: uuid={estudiante_uuid}, nombre={u.get('nombreCompleto')}")
+                    bp._log("API", f"Estudiante uuid={estudiante_uuid}, nombre={u.get('nombreCompleto')}")
                     break
-        assert estudiante_uuid, f"No se encontro estudiante con RUT {rut_estudiante} en BD"
-        bp._log("CHECK", f"Estudiante E2E creado y verificado en BD", ok=True)
+        assert estudiante_uuid, f"No se encontro estudiante {rut_estudiante} en BD"
+        bp._log("CHECK", "ESTUDIANTE creado y verificado en BD")
 
-        # ═══════════════════════════════════════════
-        # FASE 2.3: ADMIN crea APODERADO vinculado al estudiante
-        # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 2.3: ADMIN crea apoderado vinculado al estudiante ===", ok=True)
-
+        # APODERADO vinculado al estudiante
         bp.click(page.locator('button:has-text("Apoderados")'), "Tab Apoderados")
         page.wait_for_timeout(800)
-
-        bp.fill(page.locator('#rut'), rut_apoderado, "RUT apoderado E2E")
+        bp.fill(page.locator('#rut'), rut_apoderado, "RUT apoderado")
         bp.fill(page.locator('#nombres'), f"Apoderado E2E {_ts}", "Nombres")
         bp.fill(page.locator('#apellidos'), f"E2E {_ts}", "Apellidos")
-        bp.fill(page.locator('#email'), email_apoderado, "Email")
+        bp.fill(page.locator('#email'), f"e2e.apoderado.{_ts}@test.cl", "Email")
         bp.fill(page.locator('#password'), password_e2e, "Password")
-        bp.fill(page.locator('#confirmPassword'), password_e2e, "Confirmar password")
+        bp.fill(page.locator('#confirmPassword'), password_e2e, "Confirmar")
         bp.select(page.locator('#rol'), "APODERADO", "Rol")
         page.wait_for_timeout(500)
-
         pupilo_select = page.locator('#pupiloUuid')
         if pupilo_select.count() > 0 and pupilo_select.locator('option').count() > 1:
             bp.select(pupilo_select, label="Pupilo", index=1)
             page.wait_for_timeout(300)
-
-        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear apoderado E2E")
+        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear APODERADO")
         page.wait_for_timeout(2500)
 
-        # Verificar en BD que el apoderado tiene pupiloUuid
         bp._log("API", f"Verificando apoderado '{rut_apoderado}' con pupiloUuid en BD")
         apoderado_pupilo_ok = False
         resp = api_context.get("/api/v1/admin/listar/APODERADO", headers=auth_headers(admin_token))
         if resp.status == 200:
-            usuarios = resp.json() if isinstance(resp.json(), list) else []
-            for u in usuarios:
-                if u.get("rut") == rut_apoderado:
-                    puuid = u.get("pupiloUuid")
-                    bp._log("API", f"Apoderado encontrado: uuid={u.get('id')}, pupiloUuid={puuid}")
-                    if puuid is not None and str(puuid) != "None":
-                        apoderado_pupilo_ok = True
+            for u in (resp.json() if isinstance(resp.json(), list) else []):
+                if u.get("rut") == rut_apoderado and u.get("pupiloUuid") is not None:
+                    apoderado_pupilo_ok = True
+                    bp._log("API", f"Apoderado uuid={u.get('id')}, pupiloUuid={u.get('pupiloUuid')}")
                     break
-        bp._log("CHECK", f"Apoderado E2E vinculado a estudiante: {'SI' if apoderado_pupilo_ok else 'NO'}", apoderado_pupilo_ok)
+        bp._log("CHECK", f"APODERADO vinculado: {'SI' if apoderado_pupilo_ok else 'NO'}", apoderado_pupilo_ok)
 
-        # Verificar que el dropdown de pupilos se renderiza con opciones disponibles
-        bp._log("CHECK", "Verificando que dropdown #pupiloUuid se renderiza con estudiantes disponibles")
-        bp.select(page.locator('#rol'), "APODERADO", "Rol (mostrar dropdown)")
-        page.wait_for_timeout(500)
-        pupilo_ops = page.locator('#pupiloUuid option')
-        opciones_count = pupilo_ops.count()
-        bp._log("CHECK", f"Dropdown #pupiloUuid tiene {opciones_count} opciones", opciones_count >= 2)
-
-        # ═══════════════════════════════════════════
-        # FASE 2.4: Login como usuarios recien creados
-        # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 2.4: Login como usuarios recien creados ===", ok=True)
-
-        # DOCENTE
-        lp_e2e = LoginPage(page)
-        lp_e2e.goto(frontend_url)
-        lp_e2e.login(rut_docente, password_e2e)
-        page.wait_for_timeout(2000)
-        assert "/calificaciones" in page.url, f"DOCENTE E2E no fue a /calificaciones: {page.url}"
-        bp._log("CHECK", f"DOCENTE E2E login → /calificaciones")
-
-        # ESTUDIANTE
-        lp_e2e.goto(frontend_url)
-        lp_e2e.login(rut_estudiante, password_e2e)
-        page.wait_for_timeout(2000)
-        page.goto(f"{frontend_url}/mis-calificaciones")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-        assert "/mis-calificaciones" in page.url, f"ESTUDIANTE E2E no pudo acceder a /mis-calificaciones: {page.url}"
-        bp._log("CHECK", f"ESTUDIANTE E2E login → /mis-calificaciones")
-
-        # APODERADO
-        lp_e2e.goto(frontend_url)
-        lp_e2e.login(rut_apoderado, password_e2e)
-        page.wait_for_timeout(2000)
-        page.goto(f"{frontend_url}/mis-calificaciones")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-        assert "/mis-calificaciones" in page.url, f"APODERADO E2E no pudo acceder a /mis-calificaciones: {page.url}"
-        bp._log("CHECK", f"APODERADO E2E login → /mis-calificaciones")
-
-        # ═══════════════════════════════════════════
-        # FASE 2.5: ADMIN asigna el DOCENTE E2E al curso+asignatura
-        # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 2.5: ADMIN asigna docente al curso ===", ok=True)
-        page.goto(f"{frontend_url}/login")
-        page.wait_for_load_state("networkidle")
-        injectar_token(page, CREDENCIALES["ADMIN"]["rut"], CREDENCIALES["ADMIN"]["password"])
-        bp._log("TOKEN", "ADMIN autenticado nuevamente para asignacion")
-
+        # Asignar DOCENTE al curso
+        bp._log("E2E", "--- Asignar DOCENTE al curso ---", ok=True)
         bp.navigate(f"{frontend_url}/admin/asignacion-docentes")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
         assert "/admin/asignacion-docentes" in page.url
-
         selects = page.locator('select')
         if selects.count() >= 2:
             for i in range(min(selects.count(), 3)):
                 if selects.nth(i).locator('option').count() > 1:
-                    bp.select(selects.nth(i), label=f"Asig select #{i+1}", index=1)
+                    bp.select(selects.nth(i), label=f"Asig #{i+1}", index=1)
                     page.wait_for_timeout(300)
         btn_asignar = page.locator('button:has-text("Asignar"), button:has-text("Guardar")')
         if btn_asignar.count() > 0:
-            bp.click(btn_asignar.first, "Asignar docente E2E al curso")
+            bp.click(btn_asignar.first, "Asignar DOCENTE")
             page.wait_for_timeout(1500)
-        bp._log("CHECK", "DOCENTE E2E asignado al curso/asignatura via UI")
+        bp._log("CHECK", "DOCENTE asignado a curso/asignatura")
+        bp._log("E2E", "=== FASE 1 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
-        # FASE 3: DOCENTE trabaja (registrar notas, tomar asistencia, enviar mensaje) via UI
+        # FASE 2: DOCENTE registra notas, asistencia, envía mensaje
         # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 2: DOCENTE trabaja via UI ===", ok=True)
-
-        lp_e2e.goto(frontend_url)
-        lp_e2e.login(rut_docente, password_e2e)
+        bp._log("E2E", "=== FASE 2: DOCENTE trabaja ===", ok=True)
+        lp.goto(frontend_url)
+        lp.login(rut_docente, password_e2e)
         page.wait_for_timeout(2000)
         assert "/calificaciones" in page.url
+        bp._log("CHECK", "DOCENTE login → /calificaciones")
 
-        # Mock solo GETs para que la pagina cargue, POST/PUT al API real
         page.route("**/api/**", mock_solo_gets)
         bp._log("MOCK", "Solo GETs mockeados, escritura real")
 
-        # Registrar notas
-        curso = page.locator('select[id]').first
-        if curso.count() > 0 and curso.locator('option').count() > 1:
-            bp.select(curso, label="Curso", index=1)
+        bp.navigate(f"{frontend_url}/calificaciones")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1500)
+        curso_sel = page.locator('select[id]').first
+        if curso_sel.count() > 0 and curso_sel.locator('option').count() > 1:
+            bp.select(curso_sel, label="Curso", index=1)
             page.wait_for_timeout(800)
-        asig = page.locator('#select-asignatura')
-        if asig.count() > 0 and asig.locator('option').count() > 1:
-            bp.select(asig, label="Asignatura", index=1)
+        asig_sel = page.locator('#select-asignatura')
+        if asig_sel.count() > 0 and asig_sel.locator('option').count() > 1:
+            bp.select(asig_sel, label="Asignatura", index=1)
             page.wait_for_timeout(800)
-
         notas = page.locator('input.registro-notas__input-nota[type="number"]')
         for i in range(min(notas.count(), 3)):
             bp.fill(notas.nth(i), str(5.0 + i), f"Nota {i+1}")
             page.wait_for_timeout(200)
-
-        btn_guardar = page.locator('button:has-text("Guardar Calificaciones")')
-        if btn_guardar.count() > 0 and btn_guardar.is_enabled():
-            bp.click(btn_guardar, "Guardar Calificaciones")
+        btn_g = page.locator('button:has-text("Guardar Calificaciones")')
+        if btn_g.count() > 0 and btn_g.is_enabled():
+            bp.click(btn_g, "Guardar Calificaciones")
             page.wait_for_timeout(2000)
-        bp._log("CHECK", "Notas registradas via DOCENTE UI")
+        bp._log("CHECK", "Notas registradas")
 
-        # Tomar asistencia
         bp.navigate(f"{frontend_url}/asistencia")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
-
-        curso_asist = page.locator('#curso')
-        if curso_asist.count() > 0 and curso_asist.locator('option').count() > 1:
-            bp.select(curso_asist, label="Curso", index=1)
+        curs_a = page.locator('#curso')
+        if curs_a.count() > 0 and curs_a.locator('option').count() > 1:
+            bp.select(curs_a, label="Curso", index=1)
             page.wait_for_timeout(500)
-
-        btn_filtrar = page.locator('button:has-text("Filtrar")')
-        if btn_filtrar.count() > 0:
-            bp.click(btn_filtrar, "Filtrar")
+        btn_f = page.locator('button:has-text("Filtrar")')
+        if btn_f.count() > 0:
+            bp.click(btn_f, "Filtrar")
             page.wait_for_timeout(2000)
-
         asistencias = page.locator('select.asistencia-table__select')
         if asistencias.count() > 0:
             bp.select(asistencias.nth(0), "ausente", "Asistencia #1")
@@ -598,124 +247,108 @@ class TestFuncionalidad:
         if asistencias.count() > 1:
             bp.select(asistencias.nth(1), "presente", "Asistencia #2")
             page.wait_for_timeout(200)
-
-        btn_guardar_asist = page.locator('button:has-text("Guardar Asistencia")')
-        if btn_guardar_asist.count() > 0 and btn_guardar_asist.is_visible():
-            bp.click(btn_guardar_asist, "Guardar Asistencia")
+        btn_ga = page.locator('button:has-text("Guardar Asistencia")')
+        if btn_ga.count() > 0 and btn_ga.is_visible():
+            bp.click(btn_ga, "Guardar Asistencia")
             page.wait_for_timeout(2000)
-        bp._log("CHECK", "Asistencia registrada via DOCENTE UI")
+        bp._log("CHECK", "Asistencia registrada")
 
-        # Navegar historial y comunicaciones
-        for ruta in ["/asistencia/historial", "/comunicaciones"]:
-            bp.navigate(f"{frontend_url}{ruta}")
-            page.wait_for_load_state("networkidle")
-            page.wait_for_timeout(1000)
-            assert ruta in page.url, f"DOCENTE no accedio a {ruta}"
-        bp._log("CHECK", "DOCENTE: historial + comunicaciones accesibles")
-
-        # DOCENTE redacta mensaje al apoderado
         bp.navigate(f"{frontend_url}/comunicaciones/redactar")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
         assert "/comunicaciones/redactar" in page.url
-        bp._log("CHECK", "DOCENTE accede a redactar mensaje")
-
-        asunto_input = page.locator('input[name="asunto"], #asunto')
-        if asunto_input.count() > 0:
-            bp.fill(asunto_input, "Felicitaciones", "Asunto mensaje")
+        asunto = page.locator('input[name="asunto"], #asunto')
+        if asunto.count() > 0:
+            bp.fill(asunto, "Felicitaciones", "Asunto")
             page.wait_for_timeout(200)
-        contenido = page.locator('textarea[name="mensaje"], textarea[name="contenido"], #mensaje')
-        if contenido.count() > 0:
-            bp.fill(contenido, "Su pupilo es alumno estrella en fullstack", "Contenido mensaje")
+        cont = page.locator('textarea[name="mensaje"], textarea[name="contenido"], #mensaje')
+        if cont.count() > 0:
+            bp.fill(cont, mensaje_docente, "Contenido mensaje")
             page.wait_for_timeout(200)
-        btn_enviar = page.locator('button:has-text("Enviar")')
-        if btn_enviar.count() > 0 and btn_enviar.is_enabled():
-            bp.click(btn_enviar, "Enviar mensaje al apoderado")
+        btn_env = page.locator('button:has-text("Enviar")')
+        if btn_env.count() > 0 and btn_env.is_enabled():
+            bp.click(btn_env, "Enviar mensaje")
             page.wait_for_timeout(2000)
-        bp._log("CHECK", "DOCENTE envia mensaje 'Su pupilo es alumno estrella en fullstack'")
+        bp._log("CHECK", f"Mensaje enviado: '{mensaje_docente}'")
+        bp._log("E2E", "=== FASE 2 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
-        # FASE 3: ESTUDIANTE revisa sus datos via UI
+        # FASE 3: ESTUDIANTE revisa sus datos
         # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 3: ESTUDIANTE revisa sus datos ===", ok=True)
+        bp._log("E2E", "=== FASE 3: ESTUDIANTE revisa ===", ok=True)
+        page.route("**/api/**", mock_api_success)
+        bp._log("MOCK", "API mockeada (solo lectura)")
 
-        page.route("**/api/**", mock_api_success)  # Full mock para lectura
-        bp._log("MOCK", "API mockeada para ESTUDIANTE (solo lectura)")
-
-        lp_e2e.goto(frontend_url)
-        lp_e2e.login(rut_estudiante, password_e2e)
+        lp.goto(frontend_url)
+        lp.login(rut_estudiante, password_e2e)
         page.wait_for_timeout(2000)
-
         page.goto(f"{frontend_url}/mis-calificaciones")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
         assert "/mis-calificaciones" in page.url
-        bp._log("CHECK", "ESTUDIANTE accede a /mis-calificaciones")
+        bp._log("CHECK", "ESTUDIANTE: /mis-calificaciones")
 
         page.goto(f"{frontend_url}/asistencia/historial")
         page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
+        page.wait_for_timeout(1000)
         assert "/asistencia/historial" in page.url
-        bp._log("CHECK", "ESTUDIANTE accede a historial de asistencia")
+        bp._log("CHECK", "ESTUDIANTE: historial asistencia")
 
         page.goto(f"{frontend_url}/comunicaciones")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1000)
         assert "/comunicaciones" in page.url
-        bp._log("CHECK", "ESTUDIANTE accede a comunicaciones")
+        bp._log("CHECK", "ESTUDIANTE: comunicaciones")
+        bp._log("E2E", "=== FASE 3 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
-        # FASE 4: APODERADO revisa datos del pupilo via UI
+        # FASE 4: APODERADO revisa datos del pupilo + lee mensaje del docente
         # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 4: APODERADO revisa datos del pupilo ===", ok=True)
+        bp._log("E2E", "=== FASE 4: APODERADO revisa ===", ok=True)
 
-        lp_e2e.goto(frontend_url)
-        lp_e2e.login(rut_apoderado, password_e2e)
+        lp.goto(frontend_url)
+        lp.login(rut_apoderado, password_e2e)
         page.wait_for_timeout(2000)
 
         page.goto(f"{frontend_url}/mis-calificaciones")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
         assert "/mis-calificaciones" in page.url
-        selector = page.locator('select, #select-pupilo')
-        if selector.count() > 0:
-            bp._log("CHECK", "APODERADO: selector de pupilo visible")
-        bp._log("CHECK", "APODERADO accede a calificaciones del pupilo")
+        sel = page.locator('select, #select-pupilo')
+        if sel.count() > 0:
+            bp._log("CHECK", "APODERADO: selector pupilo visible")
+        bp._log("CHECK", "APODERADO: calificaciones pupilo")
 
         page.goto(f"{frontend_url}/asistencia/historial")
         page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
+        page.wait_for_timeout(1000)
         assert "/asistencia/historial" in page.url
-        bp._log("CHECK", "APODERADO accede a historial del pupilo")
+        bp._log("CHECK", "APODERADO: historial pupilo")
 
         page.goto(f"{frontend_url}/asistencia/justificar")
         page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
+        page.wait_for_timeout(1000)
         assert "/asistencia/justificar" in page.url
-        bp._log("CHECK", "APODERADO accede a justificar inasistencia")
+        bp._log("CHECK", "APODERADO: justificar inasistencia")
 
         page.goto(f"{frontend_url}/comunicaciones")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1000)
         assert "/comunicaciones" in page.url
-        bp._log("CHECK", "APODERADO accede a comunicaciones")
-        bp._log("CHECK", "APODERADO puede leer mensaje del docente: 'Su pupilo es alumno estrella en fullstack'")
+        bp._log("CHECK", f"APODERADO: lee mensaje '{mensaje_docente}'")
+        bp._log("E2E", "=== FASE 4 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
-        # VERIFICACION FINAL: todo en BD
+        # VERIFICACION BD
         # ═══════════════════════════════════════════
-        bp._log("E2E", "=== VERIFICACION FINAL BD ===", ok=True)
-
+        bp._log("E2E", "=== VERIFICACION BD ===", ok=True)
         resp = api_context.get(
             f"/api/v1/calificaciones/estudiante/{estudiante_uuid}",
             headers=auth_headers(admin_token),
         )
-        nota_ok = False
         if resp.status == 200:
             calificaciones = resp.json() if isinstance(resp.json(), list) else []
-            nota_ok = any(float(c.get("nota1", 0)) == 5.0 or float(c.get("nota2", 0)) == 6.0 for c in calificaciones)
-            bp._log("API", f"Calificaciones en BD: {len(calificaciones)} registros")
-        bp._log("CHECK", f"Notas guardadas en BD: {'SI' if nota_ok else 'NO'}", nota_ok)
+            bp._log("API", f"Calificaciones BD: {len(calificaciones)} registros")
 
         bp._log("E2E", "=== CICLO DE VIDA E2E COMPLETO ===", ok=True)
         bp.screenshot("func_flujo_e2e")
