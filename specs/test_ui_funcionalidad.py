@@ -433,20 +433,38 @@ class TestFuncionalidad:
         bp._log("CHECK", f"Nota 6.5 guardada en BD: {'SI' if nota_encontrada else 'NO'}", nota_encontrada)
 
         # ═══════════════════════════════════════════
-        # FASE 4: DOCENTE navega UI asistencia (servicio mock no disponible, verificar UI)
+        # FASE 4: Crear registro student → DOCENTE registra asistencia via API → verificar BD
         # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 4: DOCENTE navega UI asistencia ===", ok=True)
-        page.goto(f"{frontend_url}/login")
-        page.wait_for_load_state("networkidle")
-        injectar_token(page, CREDENCIALES["DOCENTE"]["rut"], CREDENCIALES["DOCENTE"]["password"])
-        page.route("**/api/**", mock_api_success)
+        bp._log("E2E", "=== FASE 4: Registrar asistencia via API Gateway ===", ok=True)
 
-        bp.navigate(f"{frontend_url}/asistencia")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(2000)
-        assert "/asistencia" in page.url
-        bp._log("CHECK", "DOCENTE accede a toma de asistencia")
-        bp._log("INFO", "ms-asistencia no esta en el compose test — verificacion UI solamente")
+        resp = api_context.post(
+            "/api/v1/estudiantes",
+            headers={**auth_headers(admin_token), "Content-Type": "application/json"},
+            data=json.dumps({"rut": rut_estudiante, "nombre": nombre_estudiante, "apellido": f"E2E {_ts}", "curso": "1ro Basico", "usuarioUuid": estudiante_uuid}),
+        )
+        student_id = None
+        if resp.status in (200, 201):
+            student_data = resp.json() if resp.text else {}
+            student_id = student_data.get("id") or student_data.get("studentId")
+            bp._log("API", f"Student creado: id={student_id}, HTTP={resp.status}")
+
+        resp = api_context.post(
+            "/api/v1/asistencias",
+            headers={**auth_headers(docente_token_e2e), "Content-Type": "application/json"},
+            data=json.dumps({"studentId": student_id or 1, "asignatura": "Matemática", "fecha": "2026-06-19", "presente": True}),
+        )
+        bp._log("API", f"Registrar asistencia → HTTP {resp.status}")
+
+        resp = api_context.get(
+            f"/api/v1/asistencias/estudiante/{student_id or 1}",
+            headers=auth_headers(admin_token),
+        )
+        asistencia_ok = False
+        if resp.status == 200:
+            registros = resp.json() if isinstance(resp.json(), list) else []
+            asistencia_ok = len(registros) > 0
+            bp._log("API", f"Asistencia en BD: {len(registros)} registros")
+        bp._log("CHECK", f"Asistencia via Gateway → BD: {'SI' if asistencia_ok else 'NO'}", asistencia_ok)
 
         bp._log("E2E", "=== FLUJO END-TO-END COMPLETO ===", ok=True)
         bp.screenshot("func_flujo_e2e")
