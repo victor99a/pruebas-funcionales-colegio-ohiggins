@@ -337,9 +337,13 @@ class TestFuncionalidad:
         _ts = int(time.time()) % 100000
         curso_nombre = f"E2E Curso {_ts}"
         asig_nombre = f"E2E Materia {_ts}"
+        rut_docente = f"97{_ts:05d}-3"
         rut_estudiante = f"99{_ts:05d}-1"
+        rut_apoderado = f"98{_ts:05d}-2"
+        password_e2e = "E2E1234!"
         nombre_estudiante = f"Alumno E2E {_ts}"
         email_estudiante = f"e2e.alumno.{_ts}@test.cl"
+        email_apoderado = f"e2e.apoderado.{_ts}@test.cl"
 
         # ═══════════════════════════════════════════
         # FASE 1: ADMIN crea curso y asignatura
@@ -380,12 +384,28 @@ class TestFuncionalidad:
             bp._log("API", f"Asignatura '{asig_nombre}' en BD: {'SI' if encontrada else 'NO'}", encontrada)
 
         # ═══════════════════════════════════════════
-        # FASE 2: ADMIN crea estudiante
+        # FASE 2: ADMIN crea DOCENTE, ESTUDIANTE, APODERADO → login como cada uno
         # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 2: ADMIN crea estudiante ===", ok=True)
+        bp._log("E2E", "=== FASE 2: ADMIN crea usuarios ===", ok=True)
         bp.navigate(f"{frontend_url}/admin/usuarios")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
+
+        # FASE 2.1: Crear DOCENTE
+        bp.click(page.locator('button:has-text("Docentes")'), "Tab Docentes")
+        page.wait_for_timeout(800)
+        bp.fill(page.locator('#rut'), rut_docente, "RUT docente E2E")
+        bp.fill(page.locator('#nombres'), f"Docente E2E {_ts}", "Nombres docente")
+        bp.fill(page.locator('#apellidos'), f"E2E {_ts}", "Apellidos")
+        bp.fill(page.locator('#email'), f"e2e.docente.{_ts}@test.cl", "Email")
+        bp.fill(page.locator('#password'), password_e2e, "Password")
+        bp.fill(page.locator('#confirmPassword'), password_e2e, "Confirmar password")
+        bp.select(page.locator('#rol'), "DOCENTE", "Rol")
+        page.wait_for_timeout(300)
+        bp.click(page.locator('button:has-text("Crear usuario")'), "Crear docente E2E")
+        page.wait_for_timeout(2500)
+
+        # FASE 2.2: Crear ESTUDIANTE
 
         bp.click(page.locator('button:has-text("Estudiantes")'), "Tab Estudiantes")
         page.wait_for_timeout(800)
@@ -415,11 +435,9 @@ class TestFuncionalidad:
         bp._log("CHECK", f"Estudiante E2E creado y verificado en BD", ok=True)
 
         # ═══════════════════════════════════════════
-        # FASE 2.5: ADMIN crea APODERADO vinculado al estudiante
+        # FASE 2.3: ADMIN crea APODERADO vinculado al estudiante
         # ═══════════════════════════════════════════
-        bp._log("E2E", "=== FASE 2.5: ADMIN crea apoderado vinculado al estudiante ===", ok=True)
-        rut_apoderado = f"98{_ts:05d}-2"
-        email_apoderado = f"e2e.apoderado.{_ts}@test.cl"
+        bp._log("E2E", "=== FASE 2.3: ADMIN crea apoderado vinculado al estudiante ===", ok=True)
 
         bp.click(page.locator('button:has-text("Apoderados")'), "Tab Apoderados")
         page.wait_for_timeout(800)
@@ -428,8 +446,8 @@ class TestFuncionalidad:
         bp.fill(page.locator('#nombres'), f"Apoderado E2E {_ts}", "Nombres")
         bp.fill(page.locator('#apellidos'), f"E2E {_ts}", "Apellidos")
         bp.fill(page.locator('#email'), email_apoderado, "Email")
-        bp.fill(page.locator('#password'), "E2E1234!", "Password")
-        bp.fill(page.locator('#confirmPassword'), "E2E1234!", "Confirmar password")
+        bp.fill(page.locator('#password'), password_e2e, "Password")
+        bp.fill(page.locator('#confirmPassword'), password_e2e, "Confirmar password")
         bp.select(page.locator('#rol'), "APODERADO", "Rol")
         page.wait_for_timeout(500)
 
@@ -463,6 +481,39 @@ class TestFuncionalidad:
         pupilo_ops = page.locator('#pupiloUuid option')
         opciones_count = pupilo_ops.count()
         bp._log("CHECK", f"Dropdown #pupiloUuid tiene {opciones_count} opciones", opciones_count >= 2)
+
+        # ═══════════════════════════════════════════
+        # FASE 2.4: Login como usuarios recien creados
+        # ═══════════════════════════════════════════
+        bp._log("E2E", "=== FASE 2.4: Login como usuarios recien creados ===", ok=True)
+
+        # DOCENTE
+        lp_e2e = LoginPage(page)
+        lp_e2e.goto(frontend_url)
+        lp_e2e.login(rut_docente, password_e2e)
+        page.wait_for_timeout(2000)
+        assert "/calificaciones" in page.url, f"DOCENTE E2E no fue a /calificaciones: {page.url}"
+        bp._log("CHECK", f"DOCENTE E2E login → /calificaciones")
+
+        # ESTUDIANTE
+        lp_e2e.goto(frontend_url)
+        lp_e2e.login(rut_estudiante, password_e2e)
+        page.wait_for_timeout(2000)
+        page.goto(f"{frontend_url}/mis-calificaciones")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1500)
+        assert "/mis-calificaciones" in page.url, f"ESTUDIANTE E2E no pudo acceder a /mis-calificaciones: {page.url}"
+        bp._log("CHECK", f"ESTUDIANTE E2E login → /mis-calificaciones")
+
+        # APODERADO
+        lp_e2e.goto(frontend_url)
+        lp_e2e.login(rut_apoderado, password_e2e)
+        page.wait_for_timeout(2000)
+        page.goto(f"{frontend_url}/mis-calificaciones")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(1500)
+        assert "/mis-calificaciones" in page.url, f"APODERADO E2E no pudo acceder a /mis-calificaciones: {page.url}"
+        bp._log("CHECK", f"APODERADO E2E login → /mis-calificaciones")
 
         # ═══════════════════════════════════════════
         # FASE 3: DOCENTE registra nota via API → verificar BD
