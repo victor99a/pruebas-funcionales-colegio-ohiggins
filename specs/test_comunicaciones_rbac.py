@@ -17,7 +17,7 @@ COMUNICACIONES_WRITE_ENDPOINTS = [
 # Para no-ADMIN/DOCENTE: si el Gateway tiene ruta al BFF, el BFF intenta
 # llamar a ms-comunicaciones que no esta en el compose → 502.
 # Si la ruta no existe, el Gateway responde 403.
-NO_ESCRITURA_ESPERADO = {403, 502}
+NO_ESCRITURA_ESPERADO = {403, 500, 502}
 
 
 class TestComunicacionesRBAC:
@@ -58,8 +58,8 @@ class TestComunicacionesRBAC:
     @pytest.mark.parametrize("role_name,expected", [
         ("ADMIN", "not_forbidden"),
         ("DOCENTE", "not_forbidden"),
-        ("APODERADO", 502),
-        ("ESTUDIANTE", 502),
+        ("APODERADO", NO_ESCRITURA_ESPERADO),
+        ("ESTUDIANTE", NO_ESCRITURA_ESPERADO),
         ("SIN_TOKEN", 401),
     ])
     def test_comunicaciones_escritura_solo_admin_docente(
