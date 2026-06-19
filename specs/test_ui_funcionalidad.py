@@ -456,6 +456,14 @@ class TestFuncionalidad:
                     break
         bp._log("CHECK", f"Apoderado E2E vinculado a estudiante: {'SI' if apoderado_pupilo_ok else 'NO'}", apoderado_pupilo_ok)
 
+        # Verificar que el dropdown de pupilos se renderiza con opciones disponibles
+        bp._log("CHECK", "Verificando que dropdown #pupiloUuid se renderiza con estudiantes disponibles")
+        bp.select(page.locator('#rol'), "APODERADO", "Rol (mostrar dropdown)")
+        page.wait_for_timeout(500)
+        pupilo_ops = page.locator('#pupiloUuid option')
+        opciones_count = pupilo_ops.count()
+        bp._log("CHECK", f"Dropdown #pupiloUuid tiene {opciones_count} opciones", opciones_count >= 2)
+
         # ═══════════════════════════════════════════
         # FASE 3: DOCENTE registra nota via API → verificar BD
         # ═══════════════════════════════════════════
