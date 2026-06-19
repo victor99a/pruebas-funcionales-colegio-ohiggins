@@ -118,3 +118,11 @@ def login_y_navegar_sin_mock(page, frontend_url, rol, pagina_destino):
     page.wait_for_timeout(3000)
     _log("READY", f"Página cargada: {page.url}")
     return page
+
+
+def mock_solo_gets(route):
+    """Mockea solo GETs, deja pasar POST/PUT/PATCH al API real"""
+    if route.request.method == "GET":
+        mock_api_success(route)
+    else:
+        route.continue_()
