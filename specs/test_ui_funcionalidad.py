@@ -244,6 +244,37 @@ class TestFuncionalidad:
         page.route("**/api/**", mock_solo_gets)
         bp._log("MOCK", "Solo GETs mockeados, escritura real")
 
+        # Reemplazar mock con datos del estudiante runtime (sin seed data)
+        _rt_rut = rut_estudiante
+        _rt_nombre = f"Alumno E2E {_ts}"
+        _rt_curso_id = str(curso_id)
+
+        def mock_runtime(route):
+            if route.request.method != "GET":
+                route.continue_()
+                return
+            url = route.request.url
+            # Calificaciones: solo el estudiante runtime
+            if "calificaciones" in url:
+                body = json.dumps([{"id":1,"rut":_rt_rut,"nombre":_rt_nombre,"nota1":None,"nota2":None,"nota3":None,"promedio":0.0}])
+            # Asistencia: solo el estudiante runtime
+            elif "asistencia" in url and ("curso" in url or "estudiante" in url):
+                body = json.dumps([{"id":1,"rut":_rt_rut,"nombre":_rt_nombre}])
+            # Cursos: incluir el curso runtime
+            elif "cursos" in url:
+                body = json.dumps([{"id":curso_id,"nombre":curso_nombre,"anioEscolar":2026}])
+            # Asignaturas: incluir la asignatura runtime
+            elif "asignaturas" in url:
+                body = json.dumps([{"id":asig_id,"nombre":asig_nombre,"horasSemanales":3}])
+            else:
+                mock_api_success(route)
+                return
+            route.fulfill(status=200, content_type="application/json", body=body)
+
+        page.unroute("**/api/**")
+        page.route("**/api/**", mock_runtime)
+        bp._log("MOCK", "Mock reemplazado con datos runtime (sin seed data)")
+
         # Registrar notas al ESTUDIANTE creado via API
         bp._log("API", f"Registrando notas para estudiante {estudiante_uuid}")
         resp = api_context.put(
