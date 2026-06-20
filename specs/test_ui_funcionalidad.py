@@ -254,9 +254,9 @@ class TestFuncionalidad:
                 route.continue_()
                 return
             url = route.request.url
-            # Calificaciones: solo el estudiante runtime
+            # Calificaciones: solo el estudiante runtime (con usuarioUuid real!)
             if "calificaciones" in url:
-                body = json.dumps([{"id":1,"rut":_rt_rut,"nombre":_rt_nombre,"nota1":None,"nota2":None,"nota3":None,"promedio":0.0}])
+                body = json.dumps([{"usuarioUuid":estudiante_uuid,"rut":_rt_rut,"nombre":_rt_nombre,"nota1":None,"nota2":None,"nota3":None,"promedio":0.0}])
             # Asistencia: solo el estudiante runtime
             elif "asistencia" in url and ("curso" in url or "estudiante" in url):
                 body = json.dumps([{"id":1,"rut":_rt_rut,"nombre":_rt_nombre}])
@@ -302,8 +302,16 @@ class TestFuncionalidad:
             page.wait_for_timeout(200)
         btn_g = page.locator('button:has-text("Guardar Calificaciones")')
         if btn_g.count() > 0 and btn_g.is_enabled():
+            # Unroute mock temporalmente para que el PUT vaya directo al servidor real
+            page.unroute("**/api/**")
             bp.click(btn_g, "Guardar Calificaciones")
             page.wait_for_timeout(2000)
+            # Re-route mock
+            page.route("**/api/**", mock_runtime)
+        # Verificar que no apareció toast de error
+        toast_error = page.locator('.Toast--error, [class*="toast"][class*="error"], .toast--error')
+        if toast_error.count() > 0 and toast_error.is_visible():
+            bp._log("UI", f"Toast error: {toast_error.text_content()}", ok=False)
         bp._log("CHECK", "Notas registradas via UI + API")
 
         # Tomar asistencia via UI
