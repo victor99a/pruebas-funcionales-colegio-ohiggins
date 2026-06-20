@@ -180,6 +180,16 @@ class TestFuncionalidad:
                     break
         assert estudiante_uuid, f"No se encontro ESTUDIANTE {rut_estudiante}"
 
+        # Matricular ESTUDIANTE en el curso creado (necesario para notas/asistencia)
+        bp._log("API", f"Matriculando estudiante en curso#{curso_id}")
+        resp = api_context.post(
+            "/api/v1/matriculas/matricular",
+            headers={**ad_headers, "Content-Type": "application/json"},
+            data=json.dumps({"usuarioUuid": estudiante_uuid, "cursoId": curso_id}),
+        )
+        bp._log("API", f"Matricula → HTTP {resp.status}")
+        bp._log("CHECK", f"ESTUDIANTE matriculado en '{curso_nombre}'")
+
         resp = api_context.get("/api/v1/admin/listar/APODERADO", headers=ad_headers)
         if resp.status == 200:
             for u in (resp.json() if isinstance(resp.json(), list) else []):
