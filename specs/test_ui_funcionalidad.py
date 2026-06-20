@@ -356,13 +356,15 @@ class TestFuncionalidad:
         # FASE 3: ESTUDIANTE revisa sus datos
         # ═══════════════════════════════════════════
         bp._log("E2E", "=== FASE 3: ESTUDIANTE revisa ===", ok=True)
+
+        # Inyectar token real antes de mockear (evita que mock intercepte el login)
+        page.goto(f"{frontend_url}/login")
+        page.wait_for_load_state("networkidle")
+        injectar_token(page, rut_estudiante, password_e2e)
         page.route("**/api/**", mock_api_success)
         bp._log("MOCK", "API mockeada (solo lectura)")
 
-        lp.goto(frontend_url)
-        lp.login(rut_estudiante, password_e2e)
-        page.wait_for_timeout(2000)
-        page.goto(f"{frontend_url}/mis-calificaciones")
+        bp.navigate(f"{frontend_url}/mis-calificaciones")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
         assert "/mis-calificaciones" in page.url
@@ -386,11 +388,11 @@ class TestFuncionalidad:
         # ═══════════════════════════════════════════
         bp._log("E2E", "=== FASE 4: APODERADO revisa ===", ok=True)
 
-        lp.goto(frontend_url)
-        lp.login(rut_apoderado, password_e2e)
-        page.wait_for_timeout(2000)
+        page.goto(f"{frontend_url}/login")
+        page.wait_for_load_state("networkidle")
+        injectar_token(page, rut_apoderado, password_e2e)
 
-        page.goto(f"{frontend_url}/mis-calificaciones")
+        bp.navigate(f"{frontend_url}/mis-calificaciones")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1500)
         assert "/mis-calificaciones" in page.url
