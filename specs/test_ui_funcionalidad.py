@@ -393,9 +393,18 @@ class TestFuncionalidad:
         # ═══════════════════════════════════════════
         bp._log("E2E", "=== FASE 4: APODERADO revisa ===", ok=True)
 
-        page.goto(f"{frontend_url}/login")
-        page.wait_for_load_state("networkidle")
-        injectar_token(page, rut_apoderado, password_e2e)
+        # Obtener token APODERADO via API (evita CORS/timing de page.evaluate)
+        resp = api_context.post(
+            "/api/v1/auth/login",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({"rut": rut_apoderado, "password": password_e2e}),
+        )
+        apo_token = resp.json().get("accessToken") if resp.status == 200 else None
+        if apo_token:
+            page.evaluate("(t) => localStorage.setItem('token', t)", apo_token)
+            bp._log("TOKEN", f"APODERADO token ({len(apo_token)} chars)")
+        else:
+            bp._log("TOKEN", f"APODERADO login fallo HTTP {resp.status}", ok=False)
 
         bp.navigate(f"{frontend_url}/mis-calificaciones")
         page.wait_for_load_state("networkidle")
