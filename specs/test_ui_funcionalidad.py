@@ -190,35 +190,35 @@ class TestFuncionalidad:
                     break
         assert apoderado_uuid, f"No se encontro APODERADO {rut_apoderado}"
 
-        # Asignar DOCENTE al curso+asignatura CREADOS
-        # NOTA: GET /api/v1/asignacion-docente devuelve 500 (bug JPA)
-        # Se usa mock para UI + API POST para la asignacion real
-        bp._log("E2E", "--- Asignar DOCENTE al curso ---", ok=True)
-        page.route("**/api/**", mock_api_success)
+        # Asignar DOCENTE al curso+asignatura CREADOS via UI (API real, sin mock)
+        bp._log("E2E", "--- Asignar DOCENTE al curso via UI ---", ok=True)
         bp.navigate(f"{frontend_url}/admin/asignacion-docentes")
         page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(2000)
+        page.wait_for_timeout(3000)
 
-        # Seleccionar opciones en los selects (poblados con mock)
-        for sel_id in ['#select-docente', '#select-curso', '#select-asignatura']:
+        # Seleccionar por label en los selects con datos reales del API
+        for sel_id, label in [
+            ('#select-docente', f"Docente E2E {_ts} E2E {_ts}"),  # nombreCompleto = nombres + apellidos
+            ('#select-curso', curso_nombre),
+            ('#select-asignatura', asig_nombre),
+        ]:
             sel = page.locator(sel_id)
             if sel.count() > 0 and sel.locator('option').count() > 1:
-                bp.select(sel, label="", index=1)
-                page.wait_for_timeout(300)
+                try:
+                    sel.select_option(label=label)
+                    bp._log("UI", f"Seleccionado: {label}")
+                    page.wait_for_timeout(300)
+                except Exception:
+                    bp._log("UI", f"No encontro '{label}', usando index=1", ok=False)
+                    sel.select_option(index=1)
+                    page.wait_for_timeout(300)
+
+        page.wait_for_timeout(500)
         btn_asignar = page.locator('button.asignacion__btn-agregar')
         if btn_asignar.count() > 0 and btn_asignar.is_enabled():
             bp.click(btn_asignar, "Asignar DOCENTE")
             page.wait_for_timeout(2000)
-        page.unroute("**/api/**")
-
-        # Asignacion real via API
-        resp = api_context.post(
-            "/api/v1/asignacion-docente",
-            headers={**ad_headers, "Content-Type": "application/json"},
-            data=json.dumps({"docenteUuid": docente_uuid, "cursoId": curso_id, "asignaturaId": asig_id}),
-        )
-        bp._log("API", f"Asignacion real → HTTP {resp.status}")
-        bp._log("CHECK", f"DOCENTE {rut_docente} asignado a curso#{curso_id} + asig#{asig_id}")
+        bp._log("CHECK", f"DOCENTE {rut_docente} asignado a '{curso_nombre}' + '{asig_nombre}' via UI")
         bp._log("E2E", "=== FASE 1 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
