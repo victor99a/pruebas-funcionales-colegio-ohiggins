@@ -340,8 +340,8 @@ class TestFuncionalidad:
         bp._log("API", f"Enviando mensaje a apoderado {apoderado_uuid}")
         resp = api_context.post(
             "/api/bff/comunicaciones/enviar",
-            headers={**ad_headers, "Content-Type": "application/json"},
-            data=json.dumps({"destinatarioId": apoderado_uuid, "asunto": "Felicitaciones", "contenido": mensaje_docente}),
+            headers={**ad_headers, "Content-Type": "application/json", "X-User-Uuid": docente_uuid},
+            data=json.dumps({"destinatario": apoderado_uuid, "asunto": "Felicitaciones", "mensaje": mensaje_docente, "canal": "EMAIL", "tipo": "INFORMATIVO"}),
         )
         bp._log("API", f"Enviar mensaje → HTTP {resp.status}")
         bp._log("CHECK", f"Mensaje enviado: '{mensaje_docente}'")
