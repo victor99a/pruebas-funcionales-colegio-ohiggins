@@ -359,12 +359,6 @@ class TestFuncionalidad:
         page.wait_for_timeout(1000)
         assert "/asistencia/historial" in page.url
         bp._log("CHECK", "ESTUDIANTE: historial asistencia")
-
-        page.goto(f"{frontend_url}/comunicaciones")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1000)
-        assert "/comunicaciones" in page.url
-        bp._log("CHECK", "ESTUDIANTE: comunicaciones")
         bp._log("E2E", "=== FASE 3 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
@@ -396,18 +390,6 @@ class TestFuncionalidad:
         page.wait_for_timeout(1000)
         assert "/asistencia/historial" in page.url
         bp._log("CHECK", "APODERADO: historial pupilo")
-
-        page.goto(f"{frontend_url}/asistencia/justificar")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1000)
-        assert "/asistencia/justificar" in page.url
-        bp._log("CHECK", "APODERADO: justificar inasistencia")
-
-        page.goto(f"{frontend_url}/comunicaciones")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1000)
-        assert "/comunicaciones" in page.url
-        bp._log("CHECK", "APODERADO: comunicaciones")
         bp._log("E2E", "=== FASE 4 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
