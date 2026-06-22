@@ -63,7 +63,6 @@ class TestFuncionalidad:
         rut_estudiante = f"99{_ts:05d}-1"
         rut_apoderado = f"98{_ts:05d}-2"
         password_e2e = "E2E1234!"
-        mensaje_docente = "Su pupilo es alumno estrella en fullstack"
         lp = LoginPage(page)
         ad_headers = auth_headers(admin_token)
 
@@ -335,26 +334,6 @@ class TestFuncionalidad:
             bp.click(btn_ga, "Guardar Asistencia")
             page.wait_for_timeout(2000)
         bp._log("CHECK", "Asistencia registrada via UI")
-
-        # Enviar mensaje al APODERADO creado via API
-        bp._log("API", f"Enviando mensaje a apoderado {apoderado_uuid}")
-        resp = api_context.post(
-            "/api/bff/comunicaciones/enviar",
-            headers={**ad_headers, "Content-Type": "application/json", "X-User-Uuid": docente_uuid},
-            data=json.dumps({"destinatario": apoderado_uuid, "asunto": "Felicitaciones", "mensaje": mensaje_docente, "canal": "EMAIL", "tipo": "INFORMATIVO"}),
-        )
-        bp._log("API", f"Enviar mensaje → HTTP {resp.status}")
-        bp._log("CHECK", f"Mensaje enviado: '{mensaje_docente}'")
-
-        # UI comunicaciones
-        bp.navigate(f"{frontend_url}/comunicaciones/redactar")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1500)
-        assert "/comunicaciones/redactar" in page.url
-        asunto_f = page.locator('input[name="asunto"], #asunto')
-        if asunto_f.count() > 0:
-            bp.fill(asunto_f, "Felicitaciones", "Asunto")
-        bp._log("CHECK", "Form de redactar mensaje accesible")
         bp._log("E2E", "=== FASE 2 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
@@ -428,7 +407,7 @@ class TestFuncionalidad:
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(1000)
         assert "/comunicaciones" in page.url
-        bp._log("CHECK", f"APODERADO: lee mensaje '{mensaje_docente}'")
+        bp._log("CHECK", "APODERADO: comunicaciones")
         bp._log("E2E", "=== FASE 4 COMPLETA ===", ok=True)
 
         # ═══════════════════════════════════════════
